@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import okhttp3.MediaType;
 import okhttp3.RequestBody;
 import retrofit2.http.Body;
@@ -48,6 +49,8 @@ import retrofit2.http.Path;
 import retrofit2.http.Query;
 import retrofit2.http.QueryMap;
 import retrofit2.http.Url;
+import retrofit2.plus.HTTPS;
+import retrofit2.plus.RetrofitUtil;
 
 import static retrofit2.Utils.methodError;
 
@@ -71,6 +74,7 @@ final class RequestFactoryParser {
   private boolean isFormEncoded;
   private boolean isMultipart;
   private String relativeUrl;
+  private boolean isHttps;
   private okhttp3.Headers headers;
   private MediaType contentType;
   private RequestAction[] requestActions;
@@ -82,7 +86,7 @@ final class RequestFactoryParser {
   }
 
   private RequestFactory toRequestFactory(BaseUrl baseUrl) {
-    return new RequestFactory(httpMethod, baseUrl, relativeUrl, headers, contentType, hasBody,
+    return new RequestFactory(httpMethod, RetrofitUtil.convertBaseUrl(baseUrl,isHttps), relativeUrl, headers, contentType, hasBody,
         isFormEncoded, isMultipart, requestActions);
   }
 
@@ -133,6 +137,8 @@ final class RequestFactoryParser {
           throw methodError(method, "Only one encoding annotation is allowed.");
         }
         isFormEncoded = true;
+      }else if (annotation instanceof HTTPS) {
+        isHttps = true;
       }
     }
 
