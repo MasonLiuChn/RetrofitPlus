@@ -37,7 +37,9 @@ dependencies {
 	compile 'com.github.MasonLiuChn:RetrofitPlus:2.0.0-bata3'
 }
 ```
+Demo：https://github.com/MasonLiuChn/RetrofitPlus/tree/master/retrofit-plus-demo
 
+Usage of retrofit2.0：https://realm.io/cn/news/droidcon-jake-wharton-simple-http-retrofit-2
 
 License
 =======
