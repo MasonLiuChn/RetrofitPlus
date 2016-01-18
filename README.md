@@ -18,7 +18,7 @@ Feature
 
 1、已经 rebase 到最新 retrofit 代码，支持原生 retrofit 所有特性。
 
-2、增加一个@HTTPS Annotation，可以灵活配置哪些方法时候 https。
+2、增加一个@HTTPS Annotation，可以灵活配置哪些方法使用 https。
 
 3、封装了一个方法用于配置 OkHttpClient 的 SSL Certificate，只需要配置证书文件路径即可。
 
@@ -34,7 +34,7 @@ repositories {
     }
 }
 dependencies {
-	        compile 'com.github.MasonLiuChn:RetrofitPlus:2.0.0-bata3'
+	compile 'com.github.MasonLiuChn:RetrofitPlus:2.0.0-bata3'
 }
 ```
 
