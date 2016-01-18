@@ -71,7 +71,7 @@ class Platform {
       throws Throwable {
     throw new UnsupportedOperationException();
   }
-  
+
 //  @IgnoreJRERequirement // Only classloaded and used on Java 8.
 //  static class Java8 extends Platform {
 //    @Override boolean isDefaultMethod(Method method) {
