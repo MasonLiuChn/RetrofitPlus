@@ -18,10 +18,9 @@ package retrofit2;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
-import java.lang.invoke.MethodHandles;
+
 import java.lang.reflect.Method;
 import java.util.concurrent.Executor;
-import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 
 class Platform {
   private static final Platform PLATFORM = findPlatform();
@@ -38,11 +37,11 @@ class Platform {
       }
     } catch (ClassNotFoundException ignored) {
     }
-    try {
-      Class.forName("java.util.Optional");
-      return new Java8();
-    } catch (ClassNotFoundException ignored) {
-    }
+//    try {
+//      Class.forName("java.util.Optional");
+//      return new Java8();
+//    } catch (ClassNotFoundException ignored) {
+//    }
     return new Platform();
   }
 
@@ -62,21 +61,21 @@ class Platform {
     throw new UnsupportedOperationException();
   }
 
-  @IgnoreJRERequirement // Only classloaded and used on Java 8.
-  static class Java8 extends Platform {
-    @Override boolean isDefaultMethod(Method method) {
-      return method.isDefault();
-    }
-
-    @Override Object invokeDefaultMethod(Method method, Class<?> declaringClass, Object object,
-        Object... args) throws Throwable {
-      return MethodHandles.lookup()
-          .in(declaringClass)
-          .unreflectSpecial(method, declaringClass)
-          .bindTo(object)
-          .invokeWithArguments(args);
-    }
-  }
+//  @IgnoreJRERequirement // Only classloaded and used on Java 8.
+//  static class Java8 extends Platform {
+//    @Override boolean isDefaultMethod(Method method) {
+//      return method.isDefault();
+//    }
+//
+//    @Override Object invokeDefaultMethod(Method method, Class<?> declaringClass, Object object,
+//        Object... args) throws Throwable {
+//      return MethodHandles.lookup()
+//          .in(declaringClass)
+//          .unreflectSpecial(method, declaringClass)
+//          .bindTo(object)
+//          .invokeWithArguments(args);
+//    }
+//  }
 
   static class Android extends Platform {
     @Override CallAdapter.Factory defaultCallAdapterFactory(Executor callbackExecutor) {
