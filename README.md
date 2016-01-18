@@ -1,13 +1,41 @@
 RetrofitPlus
 ========
+A extension for retrofit
+
+Feature
+--------
+
+1、rebase to lastest version of retrofit,support all feature of retrofit.
+
+2、@HTTPS Annotation：config which service use https.
+
+3、add method to set ssl file.
+
+4、add onStart(),onFinish() to Callback.
 
 
+中文：
+
+1、已经 rebase 到最新 retrofit 代码，支持原生 retrofit 所有特性。
+
+2、增加一个@HTTPS Annotation，可以灵活配置哪些方法时候 https。
+
+3、封装了一个方法用于配置 OkHttpClient 的 SSL Certificate，只需要配置证书文件路径即可。
+
+4、在 Callback 里增加 onStart()、onFinish() 回调方法。
 
 Usage
 --------
 
 ```groovy
-compile 'com.squareup.retrofit2:retrofit:2.0.0-beta3'
+repositories {
+    maven {
+        url "https://jitpack.io"
+    }
+}
+dependencies {
+	        compile 'com.github.MasonLiuChn:RetrofitPlus:2.0.0-bata3'
+}
 ```
 
 
