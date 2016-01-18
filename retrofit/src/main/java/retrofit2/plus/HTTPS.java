@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Square, Inc.
+ * Copyright (C) 2013 Square, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package retrofit2.helpers;
+package retrofit2.plus;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Type;
-import retrofit2.CallAdapter;
-import retrofit2.Retrofit;
+import java.lang.annotation.Documented;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
 
-public final class NonMatchingCallAdapterFactory extends CallAdapter.Factory {
-  public boolean called;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-  @Override
-  public CallAdapter<?> get(Type returnType, Annotation[] annotations, Retrofit retrofit) {
-    called = true;
-    return null;
-  }
+/** Make a HTTPS request. */
+@Documented
+@Target(METHOD)
+@Retention(RUNTIME)
+public @interface HTTPS {
+
 }

@@ -53,6 +53,8 @@ import retrofit2.http.Path;
 import retrofit2.http.Query;
 import retrofit2.http.QueryMap;
 import retrofit2.http.Url;
+import retrofit2.plus.HTTPS;
+import retrofit2.plus.RetrofitUtil;
 
 /** Adapts an invocation of an interface method into an HTTP call. */
 final class ServiceMethod<T> {
@@ -78,7 +80,7 @@ final class ServiceMethod<T> {
   ServiceMethod(Builder<T> builder) {
     this.callFactory = builder.retrofit.callFactory();
     this.callAdapter = builder.callAdapter;
-    this.baseUrl = builder.retrofit.baseUrl();
+    this.baseUrl = builder.baseUrl;
     this.responseConverter = builder.responseConverter;
     this.httpMethod = builder.httpMethod;
     this.relativeUrl = builder.relativeUrl;
@@ -98,13 +100,13 @@ final class ServiceMethod<T> {
     @SuppressWarnings("unchecked") // It is an error to invoke a method with the wrong arg types.
     ParameterHandler<Object>[] handlers = (ParameterHandler<Object>[]) parameterHandlers;
 
-    int argumentCount = args != null ? args.length : 0;
-    if (argumentCount != handlers.length) {
-      throw new IllegalArgumentException("Argument count (" + argumentCount
-          + ") doesn't match expected count (" + handlers.length + ")");
-    }
+//    int argumentCount = args != null ? args.length : 0;
+//    if (argumentCount != handlers.length) {
+//      throw new IllegalArgumentException("Argument count (" + argumentCount
+//          + ") doesn't match expected count (" + handlers.length + ")");
+//    }
 
-    for (int p = 0; p < argumentCount; p++) {
+    for (int p = 0; p < handlers.length; p++) {
       handlers[p].apply(requestBuilder, args[p]);
     }
 
@@ -146,13 +148,15 @@ final class ServiceMethod<T> {
     ParameterHandler<?>[] parameterHandlers;
     Converter<ResponseBody, T> responseConverter;
     CallAdapter<?> callAdapter;
+    HttpUrl baseUrl;
 
     public Builder(Retrofit retrofit, Method method) {
       this.retrofit = retrofit;
       this.method = method;
       this.methodAnnotations = method.getAnnotations();
       this.parameterTypes = method.getGenericParameterTypes();
-      this.parameterAnnotationsArray = method.getParameterAnnotations();
+      this.parameterAnnotationsArray = RetrofitUtil.getParameterAnnotationsWithCallbackArg(method);
+      this.baseUrl = retrofit.baseUrl();
     }
 
     public ServiceMethod build() {
@@ -218,13 +222,10 @@ final class ServiceMethod<T> {
     }
 
     private CallAdapter<?> createCallAdapter() {
-      Type returnType = method.getGenericReturnType();
+      Type returnType = RetrofitUtil.getReturnTypeIfWithCallbackArg(method);
       if (Utils.hasUnresolvableType(returnType)) {
         throw methodError(
-            "Method return type must not include a type variable or wildcard: %s", returnType);
-      }
-      if (returnType == void.class) {
-        throw methodError("Service methods cannot return void.");
+                "Method return type must not include a type variable or wildcard: %s", returnType);
       }
       Annotation[] annotations = method.getAnnotations();
       try {
@@ -271,6 +272,8 @@ final class ServiceMethod<T> {
           throw methodError("Only one encoding annotation is allowed.");
         }
         isFormEncoded = true;
+      } else if (annotation instanceof HTTPS) {
+        baseUrl = RetrofitUtil.convertHttpsUrl(baseUrl);
       }
     }
 

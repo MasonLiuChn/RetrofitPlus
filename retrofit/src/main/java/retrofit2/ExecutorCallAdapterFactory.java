@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.concurrent.Executor;
+
 import okhttp3.Request;
 
 final class ExecutorCallAdapterFactory extends CallAdapter.Factory {
@@ -57,6 +58,11 @@ final class ExecutorCallAdapterFactory extends CallAdapter.Factory {
     @Override public void enqueue(final Callback<T> callback) {
       if (callback == null) throw new NullPointerException("callback == null");
 
+      callbackExecutor.execute(new Runnable() {
+        @Override public void run() {
+          callback.onCallStart();
+        }
+      });
       delegate.enqueue(new Callback<T>() {
         @Override public void onResponse(final Call<T> call, final Response<T> response) {
           callbackExecutor.execute(new Runnable() {
@@ -67,6 +73,7 @@ final class ExecutorCallAdapterFactory extends CallAdapter.Factory {
               } else {
                 callback.onResponse(call, response);
               }
+              callback.onCallFinish();
             }
           });
         }
@@ -75,8 +82,19 @@ final class ExecutorCallAdapterFactory extends CallAdapter.Factory {
           callbackExecutor.execute(new Runnable() {
             @Override public void run() {
               callback.onFailure(call, t);
+              callback.onCallFinish();
             }
           });
+        }
+
+        @Override
+        public void onCallStart() {
+
+        }
+
+        @Override
+        public void onCallFinish() {
+
         }
       });
     }
