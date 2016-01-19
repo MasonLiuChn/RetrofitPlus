@@ -9,7 +9,7 @@ Feature
 
 2、@HTTPS Annotation：config which service use https.
 
-3、add method to set ssl file.
+3、add method to set ssl file，put the .pem file into assets folder.
 
 4、add onStart(),onFinish() to Callback.
 
@@ -20,7 +20,7 @@ Feature
 
 2、增加一个@HTTPS Annotation，可以灵活配置哪些方法使用 https。
 
-3、封装了一个方法用于配置 OkHttpClient 的 SSL Certificate，只需要配置证书文件路径即可。
+3、封装了一个方法用于配置 OkHttpClient 的 SSL Certificate，只需要配置证书文件名即可（如xxx.pem，将 xxx.pem文件放在 assets 文件夹下）。
 
 4、在 Callback 里增加 onStart()、onFinish() 回调方法。
 
