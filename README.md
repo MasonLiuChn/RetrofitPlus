@@ -41,6 +41,12 @@ Demo：https://github.com/MasonLiuChn/RetrofitPlus/tree/master/retrofit-plus-dem
 
 Usage of retrofit2.0：https://realm.io/cn/news/droidcon-jake-wharton-simple-http-retrofit-2
 
+#Contact me:
+
+- Blog:http://blog.csdn.net/masonblog
+
+- Email:MasonLiuChn@gmail.com
+
 License
 =======
 
