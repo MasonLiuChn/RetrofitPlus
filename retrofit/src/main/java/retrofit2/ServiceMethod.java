@@ -53,6 +53,8 @@ import retrofit2.http.Path;
 import retrofit2.http.Query;
 import retrofit2.http.QueryMap;
 import retrofit2.http.Url;
+import retrofit2.plus.HTTPS;
+import retrofit2.plus.RetrofitUtil;
 
 /** Adapts an invocation of an interface method into an HTTP call. */
 final class ServiceMethod<T> {
@@ -78,7 +80,7 @@ final class ServiceMethod<T> {
   ServiceMethod(Builder<T> builder) {
     this.callFactory = builder.retrofit.callFactory();
     this.callAdapter = builder.callAdapter;
-    this.baseUrl = builder.retrofit.baseUrl();
+    this.baseUrl = builder.baseUrl;
     this.responseConverter = builder.responseConverter;
     this.httpMethod = builder.httpMethod;
     this.relativeUrl = builder.relativeUrl;
@@ -146,6 +148,7 @@ final class ServiceMethod<T> {
     ParameterHandler<?>[] parameterHandlers;
     Converter<ResponseBody, T> responseConverter;
     CallAdapter<?> callAdapter;
+    HttpUrl baseUrl;
 
     public Builder(Retrofit retrofit, Method method) {
       this.retrofit = retrofit;
@@ -153,6 +156,7 @@ final class ServiceMethod<T> {
       this.methodAnnotations = method.getAnnotations();
       this.parameterTypes = method.getGenericParameterTypes();
       this.parameterAnnotationsArray = method.getParameterAnnotations();
+      this.baseUrl = retrofit.baseUrl();
     }
 
     public ServiceMethod build() {
@@ -271,6 +275,8 @@ final class ServiceMethod<T> {
           throw methodError("Only one encoding annotation is allowed.");
         }
         isFormEncoded = true;
+      } else if (annotation instanceof HTTPS) {
+        baseUrl = RetrofitUtil.convertHttpsUrl(baseUrl);
       }
     }
 
