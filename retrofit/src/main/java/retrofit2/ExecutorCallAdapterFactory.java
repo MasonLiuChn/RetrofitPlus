@@ -60,7 +60,7 @@ final class ExecutorCallAdapterFactory extends CallAdapter.Factory {
 
       callbackExecutor.execute(new Runnable() {
         @Override public void run() {
-          callback.onStart();
+          callback.onCallStart();
         }
       });
       delegate.enqueue(new Callback<T>() {
@@ -73,7 +73,7 @@ final class ExecutorCallAdapterFactory extends CallAdapter.Factory {
               } else {
                 callback.onResponse(call, response);
               }
-              callback.onFinish();
+              callback.onCallFinish();
             }
           });
         }
@@ -82,18 +82,18 @@ final class ExecutorCallAdapterFactory extends CallAdapter.Factory {
           callbackExecutor.execute(new Runnable() {
             @Override public void run() {
               callback.onFailure(call, t);
-              callback.onFinish();
+              callback.onCallFinish();
             }
           });
         }
 
         @Override
-        public void onStart() {
+        public void onCallStart() {
 
         }
 
         @Override
-        public void onFinish() {
+        public void onCallFinish() {
 
         }
       });

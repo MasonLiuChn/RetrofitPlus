@@ -43,7 +43,7 @@ public interface Callback<T> {
    */
   void onFailure(Call<T> call, Throwable t);
 
-  void onStart();
+  void onCallStart();
 
-  void onFinish();
+  void onCallFinish();
 }

@@ -7,8 +7,8 @@ import android.util.Log;
 import net.masonliu.retrofit2plus.demo.model.GitResult;
 
 import retrofit2.Call;
-import retrofit2.Callback;
 import retrofit2.Response;
+import retrofit2.plus.RetrofitPlusCallBack;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -43,28 +43,33 @@ public class MainActivity extends AppCompatActivity {
 //
 //        });
 
-        RestApi.getApiService().getUsersByName2("Mason",new Callback<GitResult>() {
+        RestApi.getApiService().getUsersByName2("Mason",new RetrofitPlusCallBack<GitResult>() {
 
             @Override
-            public void onResponse(Call<GitResult> call, Response<GitResult> response) {
+            public void onCallStart() {
+                Log.e("retrofit_plus", "start");
+            }
+
+            @Override
+            public void onCallFinish() {
+                Log.e("retrofit_plus", "finish");
+            }
+
+            @Override
+            public void onHttpSuccess(Call<GitResult> call, Response<GitResult> response) {
                 GitResult gitResult = response.body();
                 Log.e("retrofit_plus", "success:" + response.raw().request().url().toString() + "\n"
                         + gitResult.getTotalCount());
             }
 
             @Override
-            public void onFailure(Call<GitResult> call, Throwable t) {
-                Log.e("retrofit_plus", "failure");
+            public void onHttpFailure(Call<GitResult> call, Response<GitResult> response) {
+
             }
 
             @Override
-            public void onStart() {
-                Log.e("retrofit_plus", "start");
-            }
+            public void onNetFailure(Call<GitResult> call, Throwable t) {
 
-            @Override
-            public void onFinish() {
-                Log.e("retrofit_plus", "finish");
             }
 
         });

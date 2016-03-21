@@ -19,6 +19,10 @@ android {
     }
 }
 
+repositories {
+    maven { url "https://jitpack.io" }
+}
+
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
@@ -27,4 +31,5 @@ dependencies {
     compile ('com.squareup.retrofit2:converter-gson:2.0.0') {
         exclude module: 'retrofit'
     }
+    //compile 'com.github.MasonLiuChn:RetrofitPlus:2.0.0.1'
 }

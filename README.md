@@ -11,7 +11,7 @@ Feature
 
 3、add method to set ssl file，put the .pem file into assets folder.
 
-4、add onStart(),onFinish() to Callback.
+4、add onCallStart(),onCallFinish() to Callback.
 
 5、compatible with Retrofit 1.x,like: put callback in parameter and enqueue directly.
 ```java
@@ -19,6 +19,14 @@ Feature
         @Headers("User-Agent: Retrofit2.0Tutorial-App")
         @GET("/search/users")
         void getUsersByName2(@Query("q") String name, Callback<GitResult> callback);
+```
+6、add RetrofitPlusCallBack
+```java
+        onCallStart();
+        onCallFinish();
+        onHttpSuccess(Call<T> call, Response<T> response);
+        onHttpFailure(Call<T> call, Response<T> response);
+        onNetFailure(Call<T> call, Throwable t);
 ```
 
 中文：
@@ -29,7 +37,7 @@ Feature
 
 3、封装了一个方法用于配置 OkHttpClient 的 SSL Certificate，只需要配置证书文件名即可（如xxx.pem，将 xxx.pem文件放在 assets 文件夹下）。
 
-4、在 Callback 里增加 onStart()、onFinish() 回调方法。
+4、在 Callback 里增加 onCallStart()、onCallFinish() 回调方法。
 
 5、兼容 Retrofit 1.x，可以把 callback 放到参数里，执行方法后直接发送异步请求，此时方法返回值必须void。
  例如：
@@ -38,6 +46,14 @@ Feature
          @Headers("User-Agent: Retrofit2.0Tutorial-App")
          @GET("/search/users")
          void getUsersByName2(@Query("q") String name, Callback<GitResult> callback);
+```
+6、添加 RetrofitPlusCallBack 类，回调方法更清晰
+```java
+        onCallStart();
+        onCallFinish();
+        onHttpSuccess(Call<T> call, Response<T> response);
+        onHttpFailure(Call<T> call, Response<T> response);
+        onNetFailure(Call<T> call, Throwable t);
 ```
 Usage
 --------
@@ -49,7 +65,7 @@ repositories {
     }
 }
 dependencies {
-	compile 'com.github.MasonLiuChn:RetrofitPlus:2.0.0'
+	compile 'com.github.MasonLiuChn:RetrofitPlus:2.0.0.1'
 }
 ```
 Demo：https://github.com/MasonLiuChn/RetrofitPlus/tree/master/retrofit-plus-demo
