@@ -4,8 +4,9 @@ import net.masonliu.retrofit2plus.demo.model.GitResult;
 
 import okhttp3.OkHttpClient;
 import retrofit2.Call;
-import retrofit2.GsonConverterFactory;
+import retrofit2.Callback;
 import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.http.GET;
 import retrofit2.http.Headers;
 import retrofit2.http.Query;
@@ -39,6 +40,11 @@ public class RestApi {
         @Headers("User-Agent: Retrofit2.0Tutorial-App")
         @GET("/search/users")
         Call<GitResult> getUsersByName(@Query("q") String name);
+
+        @HTTPS
+        @Headers("User-Agent: Retrofit2.0Tutorial-App")
+        @GET("/search/users")
+        void getUsersByName2(@Query("q") String name, Callback<GitResult> callback);
     }
 
 }

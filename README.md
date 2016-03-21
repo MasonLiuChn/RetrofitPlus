@@ -13,6 +13,13 @@ Feature
 
 4、add onStart(),onFinish() to Callback.
 
+5、compatible with Retrofit 1.x,like: put callback in parameter and enqueue directly.
+```java
+        @HTTPS
+        @Headers("User-Agent: Retrofit2.0Tutorial-App")
+        @GET("/search/users")
+        void getUsersByName2(@Query("q") String name, Callback<GitResult> callback);
+```
 
 中文：
 
@@ -24,6 +31,14 @@ Feature
 
 4、在 Callback 里增加 onStart()、onFinish() 回调方法。
 
+5、兼容 Retrofit 1.x，可以把 callback 放到参数里，执行方法后直接发送异步请求，此时方法返回值必须void。
+ 例如：
+```java
+         @HTTPS
+         @Headers("User-Agent: Retrofit2.0Tutorial-App")
+         @GET("/search/users")
+         void getUsersByName2(@Query("q") String name, Callback<GitResult> callback);
+```
 Usage
 --------
 
@@ -34,7 +49,7 @@ repositories {
     }
 }
 dependencies {
-	compile 'com.github.MasonLiuChn:RetrofitPlus:2.0.0-bata3'
+	compile 'com.github.MasonLiuChn:RetrofitPlus:2.0.0'
 }
 ```
 Demo：https://github.com/MasonLiuChn/RetrofitPlus/tree/master/retrofit-plus-demo

@@ -100,13 +100,13 @@ final class ServiceMethod<T> {
     @SuppressWarnings("unchecked") // It is an error to invoke a method with the wrong arg types.
     ParameterHandler<Object>[] handlers = (ParameterHandler<Object>[]) parameterHandlers;
 
-    int argumentCount = args != null ? args.length : 0;
-    if (argumentCount != handlers.length) {
-      throw new IllegalArgumentException("Argument count (" + argumentCount
-          + ") doesn't match expected count (" + handlers.length + ")");
-    }
+//    int argumentCount = args != null ? args.length : 0;
+//    if (argumentCount != handlers.length) {
+//      throw new IllegalArgumentException("Argument count (" + argumentCount
+//          + ") doesn't match expected count (" + handlers.length + ")");
+//    }
 
-    for (int p = 0; p < argumentCount; p++) {
+    for (int p = 0; p < handlers.length; p++) {
       handlers[p].apply(requestBuilder, args[p]);
     }
 
@@ -155,7 +155,7 @@ final class ServiceMethod<T> {
       this.method = method;
       this.methodAnnotations = method.getAnnotations();
       this.parameterTypes = method.getGenericParameterTypes();
-      this.parameterAnnotationsArray = method.getParameterAnnotations();
+      this.parameterAnnotationsArray = RetrofitUtil.getParameterAnnotationsWithCallbackArg(method);
       this.baseUrl = retrofit.baseUrl();
     }
 
@@ -222,13 +222,10 @@ final class ServiceMethod<T> {
     }
 
     private CallAdapter<?> createCallAdapter() {
-      Type returnType = method.getGenericReturnType();
+      Type returnType = RetrofitUtil.getReturnTypeIfWithCallbackArg(method);
       if (Utils.hasUnresolvableType(returnType)) {
         throw methodError(
-            "Method return type must not include a type variable or wildcard: %s", returnType);
-      }
-      if (returnType == void.class) {
-        throw methodError("Service methods cannot return void.");
+                "Method return type must not include a type variable or wildcard: %s", returnType);
       }
       Annotation[] annotations = method.getAnnotations();
       try {

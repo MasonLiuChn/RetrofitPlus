@@ -33,6 +33,7 @@ import retrofit2.http.GET;
 import retrofit2.http.HTTP;
 import retrofit2.http.Header;
 import retrofit2.http.Url;
+import retrofit2.plus.RetrofitUtil;
 
 import static java.util.Collections.unmodifiableList;
 import static retrofit2.Utils.checkNotNull;
@@ -144,6 +145,11 @@ public final class Retrofit {
             }
             ServiceMethod serviceMethod = loadServiceMethod(method);
             OkHttpCall okHttpCall = new OkHttpCall<>(serviceMethod, args);
+            // 如果参数里有 callback 则 直接执行
+            if (RetrofitUtil.isDirectCall(method,args)) {
+              Call call = (Call)serviceMethod.callAdapter.adapt(okHttpCall);
+              call.enqueue((Callback) args[args.length - 1]);
+            }
             return serviceMethod.callAdapter.adapt(okHttpCall);
           }
         });
