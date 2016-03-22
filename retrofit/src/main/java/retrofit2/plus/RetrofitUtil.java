@@ -47,18 +47,31 @@ public class RetrofitUtil {
     public static Type getReturnTypeIfWithCallbackArg(Method method) {
         Type returnType = method.getGenericReturnType();
         if (returnType == void.class) {
+            Type lastArgType = null;
+            Class<?> lastArgClass = null;
             Type[] parameterTypes = method.getGenericParameterTypes();
-            if (parameterTypes.length > 0 && parameterTypes[parameterTypes.length - 1] instanceof ParameterizedType) {
-                final ParameterizedType callbackType = (ParameterizedType) parameterTypes[parameterTypes.length - 1];
+            if (parameterTypes.length > 0) {
+                Type typeToCheck = parameterTypes[parameterTypes.length - 1];
+                lastArgType = typeToCheck;
+                if (typeToCheck instanceof ParameterizedType) {
+                    typeToCheck = ((ParameterizedType) typeToCheck).getRawType();
+                }
+                if (typeToCheck instanceof Class) {
+                    lastArgClass = (Class<?>) typeToCheck;
+                }
+            }
+            boolean hasCallback = lastArgClass != null && Callback.class.isAssignableFrom(lastArgClass);
+            if(hasCallback){
+                final ParameterizedType lastArgTypeTmp = (ParameterizedType)Types.getSupertype(lastArgType, Types.getRawType(lastArgType), Callback.class);
                 returnType = new ParameterizedType() {
                     @Override
                     public Type[] getActualTypeArguments() {
-                        return callbackType.getActualTypeArguments();
+                        return lastArgTypeTmp.getActualTypeArguments();
                     }
 
                     @Override
                     public Type getOwnerType() {
-                        return callbackType.getOwnerType();
+                        return lastArgTypeTmp.getOwnerType();
                     }
 
                     @Override
@@ -66,7 +79,7 @@ public class RetrofitUtil {
                         return Call.class;
                     }
                 };
-            } else {
+            }else {
                 String message = "If Service methods return void, the last parameter of method must be a Callback" + "\n    for method "
                         + method.getDeclaringClass().getSimpleName()
                         + "."
