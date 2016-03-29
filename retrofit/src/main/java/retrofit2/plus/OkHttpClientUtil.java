@@ -25,7 +25,7 @@ public class OkHttpClientUtil {
     private OkHttpClientUtil() {
     }
 
-    public static OkHttpClient ssl(OkHttpClient client, Context context, String assetsSSLFileName) {
+    public static OkHttpClient getSSLClient(OkHttpClient client, Context context, String assetsSSLFileName) {
         InputStream inputStream = trustedCertificatesInputStream(context, assetsSSLFileName);
         if (inputStream != null) {
             SSLContext sslContext = sslContextForTrustedCertificates(inputStream);

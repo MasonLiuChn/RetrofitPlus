@@ -1,6 +1,9 @@
 package net.masonliu.retrofit2plus.demo;
 
+import android.content.Context;
+
 import net.masonliu.retrofit2plus.demo.model.GitResult;
+import net.masonliu.retrofit2plus.demo.model.HttpsResult;
 
 import okhttp3.OkHttpClient;
 import retrofit2.Call;
@@ -20,10 +23,10 @@ public class RestApi {
     private static GitApiService gitApiService;
     private static String baseUrl = "http://api.github.com";
 
-    public static GitApiService getApiService() {
+    public static GitApiService getApiService(Context context) {
         if (gitApiService == null) {
             OkHttpClient okClient = new OkHttpClient();
-            //okClient = OkHttpClientUtil.ssl(okClient, context, "ddd");
+            //okClient = OkHttpClientUtil.getSSLClient(okClient, context, "Baidu.pem");
             Retrofit client = new Retrofit.Builder()
                     .baseUrl(baseUrl)
                     .client(okClient)
@@ -45,6 +48,10 @@ public class RestApi {
         @Headers("User-Agent: Retrofit2.0Tutorial-App")
         @GET("/search/users")
         void getUsersByName2(@Query("q") String name, Callback<GitResult> callback);
+
+        @HTTPS
+        @GET("/settlement/bank/showBanks")
+        void testHttps(Callback<HttpsResult> callback);
     }
 
 }

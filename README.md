@@ -65,7 +65,7 @@ repositories {
     }
 }
 dependencies {
-	compile 'com.github.MasonLiuChn:RetrofitPlus:2.0.0.2'
+	compile 'com.github.MasonLiuChn:RetrofitPlus:2.0.0.3'
 }
 ```
 Demo：https://github.com/MasonLiuChn/RetrofitPlus/tree/master/retrofit-plus-demo

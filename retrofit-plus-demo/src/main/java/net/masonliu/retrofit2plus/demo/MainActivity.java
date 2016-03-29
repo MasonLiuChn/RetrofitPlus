@@ -43,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
 //
 //        });
 
-        RestApi.getApiService().getUsersByName2("Mason",new RetrofitPlusCallBack<GitResult>() {
+        RestApi.getApiService(this).getUsersByName2("Mason",new RetrofitPlusCallBack<GitResult>() {
 
             @Override
             public void onCallStart() {
@@ -73,5 +73,29 @@ public class MainActivity extends AppCompatActivity {
             }
 
         });
+
+//        RestApi.getApiService(this).testHttps(new Callback<HttpsResult>() {
+//            @Override
+//            public void onResponse(Call<HttpsResult> call, Response<HttpsResult> response) {
+//                HttpsResult gitResult = response.body();
+//                Log.e("retrofit_plus", "success:" + response.raw().request().url().toString() + "\n"
+//                        + gitResult.getCode());
+//            }
+//
+//            @Override
+//            public void onFailure(Call<HttpsResult> call, Throwable t) {
+//                Log.e("retrofit_plus", "failure:");
+//            }
+//
+//            @Override
+//            public void onCallStart() {
+//
+//            }
+//
+//            @Override
+//            public void onCallFinish() {
+//
+//            }
+//        });
     }
 }
