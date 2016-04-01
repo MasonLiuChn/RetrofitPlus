@@ -1,59 +1,89 @@
 RetrofitPlus
 ========
-A extension for retrofit
+A extension for retrofit2
 
 Feature
 --------
 
-1、rebase to lastest version of retrofit(now is retrofit-2.0.0),support all feature of retrofit.
+1、Rebase to lastest version of retrofit2(now is retrofit-2.0.0),support all feature of retrofit2.
 
 2、@HTTPS Annotation：config which service use https.
 
-3、add method to set ssl file，put the .pem file into assets folder.
-
-4、add onCallStart(),onCallFinish() to Callback.
-
-5、compatible with Retrofit 1.x,like: put callback in parameter and enqueue directly.
+Example:
 ```java
-        @HTTPS
-        @Headers("User-Agent: Retrofit2.0Tutorial-App")
-        @GET("/search/users")
-        void getUsersByName2(@Query("q") String name, Callback<GitResult> callback);
+@HTTPS
+@GET("/search/users")
+Call<GitResult> getUsersByName(@Query("q") String name);
 ```
-6、add RetrofitPlusCallBack
+
+3、Set certificate pinning for https of okhttp3.
+
+Example:
+* put certificate file into assets folder
 ```java
-        onCallStart();
-        onCallFinish();
-        onHttpSuccess(Call<T> call, Response<T> response);
-        onHttpFailure(Call<T> call, Response<T> response);
-        onNetFailure(Call<T> call, Throwable t);
+OkHttpClientUtil.getSSLClient(okClient, context, "xxx.pem");
+```
+* set certificate string  directly
+```java
+OkHttpClientUtil.getSSLClientByCertificateString(okClient,  certificateString);
+```
+4、Compatible with Retrofit 1.x,like: put callback into parameter and enqueue directly.
+
+Example:
+```java
+@HTTPS
+@GET("/search/users")
+void getUsersByName2(@Query("q") String name, Callback<GitResult> callback);
+```
+5、Add RetrofitPlusCallBack
+```java
+onCallStart();
+onCallFinish();
+onHttpSuccess(Call<T> call, Response<T> response);
+onHttpFailure(Call<T> call, Response<T> response);
+onNetFailure(Call<T> call, Throwable t);
 ```
 
 中文：
+---------
 
-1、已经 rebase 到最新 retrofit 代码(目前是最新的retrofit2.0.0)，支持原生 retrofit 所有特性。
+1、已经 rebase 到最新 retrofit2 代码(目前是最新的retrofit2.0.0)，支持原生 retrofit2 所有特性。
 
-2、增加一个@HTTPS Annotation，可以灵活配置哪些方法使用 https。
+2、增加@HTTPS Annotation，可以灵活配置哪些方法使用 https。
 
-3、封装了一个方法用于配置 OkHttpClient 的 SSL Certificate，只需要配置证书文件名即可（如xxx.pem，将 xxx.pem文件放在 assets 文件夹下）。
+例如:
+```java
+@HTTPS
+@GET("/search/users")
+Call<GitResult> getUsersByName(@Query("q") String name);
+```
 
-4、在 Callback 里增加 onCallStart()、onCallFinish() 回调方法。
+3、为 okhttp3 的 https 设置certificate pinning。
 
-5、兼容 Retrofit 1.x，可以把 callback 放到参数里，执行方法后直接发送异步请求，此时方法返回值必须void。
+例如:
+* 将证书文件放入assets文件夹
+```java
+OkHttpClientUtil.getSSLClient(okClient, context, "xxx.pem");
+```
+* 直接设置证书字符串
+```java
+OkHttpClientUtil.getSSLClientByCertificateString(okClient,  certificateString);
+```
+
+4、兼容 Retrofit 1.x，可以把 callback 放到参数里，执行方法后直接发送异步请求，此时方法返回值必须void。
+
  例如：
 ```java
-         @HTTPS
-         @Headers("User-Agent: Retrofit2.0Tutorial-App")
-         @GET("/search/users")
-         void getUsersByName2(@Query("q") String name, Callback<GitResult> callback);
+@GET("/search/users")
+void getUsersByName2(@Query("q") String name, Callback<GitResult> callback);
 ```
-6、添加 RetrofitPlusCallBack 类，回调方法更清晰
+5、添加 RetrofitPlusCallBack 类，回调方法更完整清晰
 ```java
-        onCallStart();
-        onCallFinish();
-        onHttpSuccess(Call<T> call, Response<T> response);
-        onHttpFailure(Call<T> call, Response<T> response);
-        onNetFailure(Call<T> call, Throwable t);
+onCallStart();
+onCallFinish();
+onHttpSuccess(Call<T> call, Response<T> response);
+onHttpFailure(Call<T> call, Response<T> response);
+onNetFailure(Call<T> call, Throwable t);
 ```
 Usage
 --------
@@ -65,7 +95,7 @@ repositories {
     }
 }
 dependencies {
-	compile 'com.github.MasonLiuChn:RetrofitPlus:2.0.0.4'
+	compile 'com.github.MasonLiuChn:RetrofitPlus:2.0.0.5'
 }
 ```
 Demo：https://github.com/MasonLiuChn/RetrofitPlus/tree/master/retrofit-plus-demo

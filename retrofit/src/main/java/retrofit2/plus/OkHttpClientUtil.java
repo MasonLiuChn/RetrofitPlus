@@ -2,9 +2,8 @@ package retrofit2.plus;
 
 import android.content.Context;
 
-import java.io.IOException;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.security.cert.Certificate;
@@ -27,9 +26,20 @@ public class OkHttpClientUtil {
 
     public static OkHttpClient getSSLClient(OkHttpClient client, Context context, String assetsSSLFileName) {
         InputStream inputStream = trustedCertificatesInputStream(context, assetsSSLFileName);
+        return getSSLClientByInputStream(client, inputStream);
+    }
+
+    public static OkHttpClient getSSLClientByCertificateString(OkHttpClient client, String certificate) {
+        InputStream inputStream = trustedCertificatesInputStreamByCertificateString(certificate);
+        return getSSLClientByInputStream(client, inputStream);
+    }
+
+    private static OkHttpClient getSSLClientByInputStream(OkHttpClient client, InputStream inputStream) {
         if (inputStream != null) {
             SSLContext sslContext = sslContextForTrustedCertificates(inputStream);
-            client = client.newBuilder().sslSocketFactory(sslContext.getSocketFactory()).build();
+            if (sslContext != null) {
+                client = client.newBuilder().sslSocketFactory(sslContext.getSocketFactory()).build();
+            }
         }
         return client;
     }
@@ -37,7 +47,15 @@ public class OkHttpClientUtil {
     private static InputStream trustedCertificatesInputStream(Context context, String assetsFileName) {
         try {
             return context.getAssets().open(assetsFileName);
-        } catch (IOException var3) {
+        } catch (Exception var3) {
+            return null;
+        }
+    }
+
+    private static InputStream trustedCertificatesInputStreamByCertificateString(String certificate) {
+        try {
+            return new ByteArrayInputStream(certificate.getBytes("UTF-8"));
+        } catch (Exception var3) {
             return null;
         }
     }
@@ -53,7 +71,6 @@ public class OkHttpClientUtil {
                 KeyStore keyStore = newEmptyKeyStore(password);
                 int index = 0;
                 Iterator keyManagerFactory = certificates.iterator();
-
                 while (keyManagerFactory.hasNext()) {
                     Certificate trustManagerFactory = (Certificate) keyManagerFactory.next();
                     String sslContext = Integer.toString(index++);
@@ -68,19 +85,21 @@ public class OkHttpClientUtil {
                 var12.init(var10.getKeyManagers(), var11.getTrustManagers(), new SecureRandom());
                 return var12;
             }
-        } catch (GeneralSecurityException var9) {
-            throw new RuntimeException(var9);
+        } catch (Exception var9) {
+            var9.printStackTrace();
         }
+        return null;
     }
 
-    private static KeyStore newEmptyKeyStore(char[] password) throws GeneralSecurityException {
+    private static KeyStore newEmptyKeyStore(char[] password) {
         try {
             KeyStore e = KeyStore.getInstance(KeyStore.getDefaultType());
             Object in = null;
             e.load((InputStream) in, password);
             return e;
-        } catch (IOException var3) {
-            throw new AssertionError(var3);
+        } catch (Exception var3) {
+            var3.printStackTrace();
         }
+        return null;
     }
 }
