@@ -5,7 +5,7 @@ A extension for retrofit2
 Feature
 --------
 
-1、Rebase to lastest version of retrofit2(now is retrofit-2.0.0),support all feature of retrofit2.
+1、Rebase to lastest version of retrofit2(now is retrofit-2.0.1),support all feature of retrofit2.
 
 2、@HTTPS Annotation：config which service use https.
 
@@ -47,7 +47,7 @@ onNetFailure(Call<T> call, Throwable t);
 中文：
 ---------
 
-1、已经 rebase 到最新 retrofit2 代码(目前是最新的retrofit2.0.0)，支持原生 retrofit2 所有特性。
+1、已经 rebase 到最新 retrofit2 代码(目前是最新的retrofit2.0.1)，支持原生 retrofit2 所有特性。
 
 2、增加@HTTPS Annotation，可以灵活配置哪些方法使用 https。
 
@@ -95,7 +95,7 @@ repositories {
     }
 }
 dependencies {
-	compile 'com.github.MasonLiuChn:RetrofitPlus:2.0.0.5'
+	compile 'com.github.MasonLiuChn:RetrofitPlus:2.0.1.0'
 }
 ```
 Demo：https://github.com/MasonLiuChn/RetrofitPlus/tree/master/retrofit-plus-demo
