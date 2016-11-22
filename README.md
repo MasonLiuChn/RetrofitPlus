@@ -96,6 +96,10 @@ repositories {
 }
 dependencies {
 	compile 'com.github.MasonLiuChn:RetrofitPlus:2.0.1.0'
+	compile('com.squareup.retrofit2:converter-gson:2.0.0') {
+        	//exclude module: 'retrofit' 如果不写 group 则生成 pom 不会 add exclusion
+        	exclude group: 'com.squareup.retrofit2', module: 'retrofit'
+    	}
 }
 ```
 Demo：https://github.com/MasonLiuChn/RetrofitPlus/tree/master/retrofit-plus-demo
