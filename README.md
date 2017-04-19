@@ -85,6 +85,11 @@ onHttpSuccess(Call<T> call, Response<T> response);
 onHttpFailure(Call<T> call, Response<T> response);
 onNetFailure(Call<T> call, Throwable t);
 ```
+
+Todo：
+- 1、增加@BodyKey 注解
+- 2、POST无参数时默认NullObjectBody
+
 Usage
 --------
 
