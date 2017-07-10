@@ -23,4 +23,5 @@ dependencies {
     compile 'com.squareup.okhttp3:okhttp:3.8.1'
     compile 'com.android.support:appcompat-v7:23.1.1'
     compile 'org.codehaus.mojo:animal-sniffer-annotations:1.14'
+    compile group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.0'
 }
