@@ -15,9 +15,12 @@
  */
 package retrofit2.http;
 
+import java.lang.annotation.Annotation;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
+import java.lang.reflect.Type;
+import retrofit2.Retrofit;
 
 import static java.lang.annotation.ElementType.PARAMETER;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
@@ -25,28 +28,30 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 /**
  * Query parameter keys and values appended to the URL.
  * <p>
- * Both keys and values are converted to strings using {@link String#valueOf(Object)}.
+ * Values are converted to strings using {@link Retrofit#stringConverter(Type, Annotation[])}
+ * (or {@link Object#toString()}, if no matching string converter is installed).
  * <p>
  * Simple Example:
- * <pre>{@code
- * &#64;GET("/search")
- * Call&lt;ResponseBody> list(@QueryMap Map&lt;String, String&gt; filters);
- * }</pre>
- * Calling with {@code foo.list(ImmutableMap.of("foo", "bar", "kit", "kat"))} yields
- * {@code /search?foo=bar&kit=kat}.
+ * <pre><code>
+ * &#64;GET("/friends")
+ * Call&lt;ResponseBody&gt; friends(@QueryMap Map&lt;String, String&gt; filters);
+ * </code></pre>
+ * Calling with {@code foo.friends(ImmutableMap.of("group", "coworker", "age", "42"))} yields
+ * {@code /friends?group=coworker&age=42}.
  * <p>
  * Map keys and values representing parameter values are URL encoded by default. Specify
  * {@link #encoded() encoded=true} to change this behavior.
- * <pre>{@code
- * &#64;GET("/search")
- * Call&lt;ResponseBody> list(@QueryMap(encoded=true) Map&lt;String, String&gt; filters);
- * }</pre>
- * Calling with {@code foo.list(ImmutableMap.of("foo", "foo+bar"))} yields
- * {@code /search?foo=foo+bar}.
+ * <pre><code>
+ * &#64;GET("/friends")
+ * Call&lt;ResponseBody&gt; friends(@QueryMap(encoded=true) Map&lt;String, String&gt; filters);
+ * </code></pre>
+ * Calling with {@code foo.list(ImmutableMap.of("group", "coworker+bowling"))} yields
+ * {@code /search?group=coworker+bowling}.
  * <p>
  * A {@code null} value for the map, as a key, or as a value is not allowed.
  *
  * @see Query
+ * @see QueryName
  */
 @Documented
 @Target(PARAMETER)

@@ -22,6 +22,8 @@ import java.util.concurrent.Executor;
 
 import okhttp3.Request;
 
+import static retrofit2.Utils.checkNotNull;
+
 final class ExecutorCallAdapterFactory extends CallAdapter.Factory {
   final Executor callbackExecutor;
 
@@ -30,17 +32,17 @@ final class ExecutorCallAdapterFactory extends CallAdapter.Factory {
   }
 
   @Override
-  public CallAdapter<Call<?>> get(Type returnType, Annotation[] annotations, Retrofit retrofit) {
+  public CallAdapter<?, ?> get(Type returnType, Annotation[] annotations, Retrofit retrofit) {
     if (getRawType(returnType) != Call.class) {
       return null;
     }
     final Type responseType = Utils.getCallResponseType(returnType);
-    return new CallAdapter<Call<?>>() {
+    return new CallAdapter<Object, Call<?>>() {
       @Override public Type responseType() {
         return responseType;
       }
 
-      @Override public <R> Call<R> adapt(Call<R> call) {
+      @Override public Call<Object> adapt(Call<Object> call) {
         return new ExecutorCallbackCall<>(callbackExecutor, call);
       }
     };
@@ -56,7 +58,7 @@ final class ExecutorCallAdapterFactory extends CallAdapter.Factory {
     }
 
     @Override public void enqueue(final Callback<T> callback) {
-      if (callback == null) throw new NullPointerException("callback == null");
+      checkNotNull(callback, "callback == null");
 
       callbackExecutor.execute(new Runnable() {
         @Override public void run() {
@@ -64,25 +66,25 @@ final class ExecutorCallAdapterFactory extends CallAdapter.Factory {
         }
       });
       delegate.enqueue(new Callback<T>() {
-        @Override public void onResponse(final Call<T> call, final Response<T> response) {
+        @Override public void onResponse(Call<T> call, final Response<T> response) {
           callbackExecutor.execute(new Runnable() {
             @Override public void run() {
               if (delegate.isCanceled()) {
                 // Emulate OkHttp's behavior of throwing/delivering an IOException on cancellation.
-                callback.onFailure(call, new IOException("Canceled"));
+                callback.onFailure(ExecutorCallbackCall.this, new IOException("Canceled"));
               } else {
-                callback.onResponse(call, response);
+                callback.onResponse(ExecutorCallbackCall.this, response);
               }
               callback.onCallFinish();
             }
           });
         }
 
-        @Override public void onFailure(final Call<T> call, final Throwable t) {
+        @Override public void onFailure(Call<T> call, final Throwable t) {
           callbackExecutor.execute(new Runnable() {
             @Override public void run() {
-              callback.onFailure(call, t);
-              callback.onCallFinish();
+              callback.onFailure(ExecutorCallbackCall.this, t);
+                callback.onCallFinish();
             }
           });
         }

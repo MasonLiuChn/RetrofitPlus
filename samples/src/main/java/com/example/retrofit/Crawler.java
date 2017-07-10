@@ -77,7 +77,7 @@ public final class Crawler {
         // Enqueue its links for visiting.
         for (String link : page.links) {
           HttpUrl linkUrl = base.resolve(link);
-          if (linkUrl != null && !fetchedUrls.add(linkUrl)) {
+          if (linkUrl != null && fetchedUrls.add(linkUrl)) {
             crawlPage(linkUrl);
           }
         }
@@ -116,10 +116,10 @@ public final class Crawler {
   }
 
   static class Page {
-    public final String title;
-    public final List<String> links;
+    final String title;
+    final List<String> links;
 
-    public Page(String title, List<String> links) {
+    Page(String title, List<String> links) {
       this.title = title;
       this.links = links;
     }

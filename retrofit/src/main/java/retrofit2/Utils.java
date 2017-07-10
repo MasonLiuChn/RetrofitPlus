@@ -26,6 +26,7 @@ import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
+import javax.annotation.Nullable;
 import okhttp3.ResponseBody;
 import okio.Buffer;
 
@@ -36,12 +37,14 @@ final class Utils {
     // No instances.
   }
 
-  public static Class<?> getRawType(Type type) {
+  static Class<?> getRawType(Type type) {
+    checkNotNull(type, "type == null");
+
     if (type instanceof Class<?>) {
       // Type is a normal class.
       return (Class<?>) type;
-
-    } else if (type instanceof ParameterizedType) {
+    }
+    if (type instanceof ParameterizedType) {
       ParameterizedType parameterizedType = (ParameterizedType) type;
 
       // I'm not exactly sure why getRawType() returns Type instead of Class. Neal isn't either but
@@ -49,28 +52,26 @@ final class Utils {
       Type rawType = parameterizedType.getRawType();
       if (!(rawType instanceof Class)) throw new IllegalArgumentException();
       return (Class<?>) rawType;
-
-    } else if (type instanceof GenericArrayType) {
+    }
+    if (type instanceof GenericArrayType) {
       Type componentType = ((GenericArrayType) type).getGenericComponentType();
       return Array.newInstance(getRawType(componentType), 0).getClass();
-
-    } else if (type instanceof TypeVariable) {
+    }
+    if (type instanceof TypeVariable) {
       // We could use the variable's bounds, but that won't work if there are multiple. Having a raw
       // type that's more general than necessary is okay.
       return Object.class;
-
-    } else if (type instanceof WildcardType) {
-      return getRawType(((WildcardType) type).getUpperBounds()[0]);
-
-    } else {
-      String className = type == null ? "null" : type.getClass().getName();
-      throw new IllegalArgumentException("Expected a Class, ParameterizedType, or "
-          + "GenericArrayType, but <" + type + "> is of type " + className);
     }
+    if (type instanceof WildcardType) {
+      return getRawType(((WildcardType) type).getUpperBounds()[0]);
+    }
+
+    throw new IllegalArgumentException("Expected a Class, ParameterizedType, or "
+          + "GenericArrayType, but <" + type + "> is of type " + type.getClass().getName());
   }
 
   /** Returns true if {@code a} and {@code b} are equal. */
-  public static boolean equals(Type a, Type b) {
+  static boolean equals(Type a, Type b) {
     if (a == b) {
       return true; // Also handles (a == null && b == null).
 
@@ -162,7 +163,7 @@ final class Utils {
     return o != null ? o.hashCode() : 0;
   }
 
-  public static String typeToString(Type type) {
+  static String typeToString(Type type) {
     return type instanceof Class ? ((Class<?>) type).getName() : type.toString();
   }
 
@@ -173,13 +174,13 @@ final class Utils {
    *
    * @param supertype a superclass of, or interface implemented by, this.
    */
-  public static Type getSupertype(Type context, Class<?> contextRawType, Class<?> supertype) {
+  static Type getSupertype(Type context, Class<?> contextRawType, Class<?> supertype) {
     if (!supertype.isAssignableFrom(contextRawType)) throw new IllegalArgumentException();
     return resolve(context, contextRawType,
         getGenericSupertype(context, contextRawType, supertype));
   }
 
-  public static Type resolve(Type context, Class<?> contextRawType, Type toResolve) {
+  static Type resolve(Type context, Class<?> contextRawType, Type toResolve) {
     // This implementation is made a little more complicated in an attempt to avoid object-creation.
     while (true) {
       if (toResolve instanceof TypeVariable) {
@@ -280,7 +281,7 @@ final class Utils {
     }
   }
 
-  static <T> T checkNotNull(T object, String message) {
+  static <T> T checkNotNull(@Nullable T object, String message) {
     if (object == null) {
       throw new NullPointerException(message);
     }
@@ -318,9 +319,9 @@ final class Utils {
 
   static Type getParameterUpperBound(int index, ParameterizedType type) {
     Type[] types = type.getActualTypeArguments();
-    if (types.length <= index) {
+    if (index < 0 || index >= types.length) {
       throw new IllegalArgumentException(
-          "Expected at least " + index + " type argument(s) but got: " + Arrays.toString(types));
+          "Index " + index + " not in range [0," + types.length + ") for " + type);
     }
     Type paramType = types[index];
     if (paramType instanceof WildcardType) {
@@ -369,21 +370,21 @@ final class Utils {
     private final Type rawType;
     private final Type[] typeArguments;
 
-    public ParameterizedTypeImpl(Type ownerType, Type rawType, Type... typeArguments) {
+    ParameterizedTypeImpl(Type ownerType, Type rawType, Type... typeArguments) {
       // Require an owner type if the raw type needs it.
       if (rawType instanceof Class<?>
           && (ownerType == null) != (((Class<?>) rawType).getEnclosingClass() == null)) {
         throw new IllegalArgumentException();
       }
 
+      for (Type typeArgument : typeArguments) {
+        checkNotNull(typeArgument, "typeArgument == null");
+        checkNotPrimitive(typeArgument);
+      }
+
       this.ownerType = ownerType;
       this.rawType = rawType;
       this.typeArguments = typeArguments.clone();
-
-      for (Type typeArgument : this.typeArguments) {
-        if (typeArgument == null) throw new NullPointerException();
-        checkNotPrimitive(typeArgument);
-      }
     }
 
     @Override public Type[] getActualTypeArguments() {
@@ -407,9 +408,9 @@ final class Utils {
     }
 
     @Override public String toString() {
+      if (typeArguments.length == 0) return typeToString(rawType);
       StringBuilder result = new StringBuilder(30 * (typeArguments.length + 1));
       result.append(typeToString(rawType));
-      if (typeArguments.length == 0) return result.toString();
       result.append("<").append(typeToString(typeArguments[0]));
       for (int i = 1; i < typeArguments.length; i++) {
         result.append(", ").append(typeToString(typeArguments[i]));
@@ -421,7 +422,7 @@ final class Utils {
   private static final class GenericArrayTypeImpl implements GenericArrayType {
     private final Type componentType;
 
-    public GenericArrayTypeImpl(Type componentType) {
+    GenericArrayTypeImpl(Type componentType) {
       this.componentType = componentType;
     }
 
@@ -452,7 +453,7 @@ final class Utils {
     private final Type upperBound;
     private final Type lowerBound;
 
-    public WildcardTypeImpl(Type[] upperBounds, Type[] lowerBounds) {
+    WildcardTypeImpl(Type[] upperBounds, Type[] lowerBounds) {
       if (lowerBounds.length > 1) throw new IllegalArgumentException();
       if (upperBounds.length != 1) throw new IllegalArgumentException();
 

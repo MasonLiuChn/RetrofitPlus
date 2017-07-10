@@ -5,7 +5,7 @@ A extension for retrofit2
 Feature
 --------
 
-1、Rebase to lastest version of retrofit2(now is retrofit-2.0.1),support all feature of retrofit2.
+1、Rebase to lastest version of retrofit2(now is retrofit-2.3.0),support all feature of retrofit2.
 
 2、@HTTPS Annotation：config which service use https.
 
@@ -100,7 +100,7 @@ repositories {
     }
 }
 dependencies {
-	compile 'com.github.MasonLiuChn:RetrofitPlus:2.0.1.0'
+	compile 'com.github.MasonLiuChn:RetrofitPlus:2.3.0.0'
 	compile('com.squareup.retrofit2:converter-gson:2.0.0') {
         	//exclude module: 'retrofit' 如果不写 group 则生成 pom 不会 add exclusion
         	exclude group: 'com.squareup.retrofit2', module: 'retrofit'
@@ -115,7 +115,19 @@ Usage of retrofit2.0：https://realm.io/cn/news/droidcon-jake-wharton-simple-htt
 
 - Blog:http://blog.csdn.net/masonblog
 
+<<<<<<< HEAD
 - Email:MasonLiuChn@gmail.com
+=======
+ProGuard
+--------
+
+If you are using ProGuard you might need to add the following options:
+```
+-dontwarn okio.**
+-dontwarn javax.annotation.**
+```
+
+>>>>>>> upstream/master
 
 License
 =======
@@ -133,3 +145,11 @@ License
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
+<<<<<<< HEAD
+=======
+
+
+ [1]: http://square.github.io/retrofit/
+ [2]: https://search.maven.org/remote_content?g=com.squareup.retrofit2&a=retrofit&v=LATEST
+ [snap]: https://oss.sonatype.org/content/repositories/snapshots/
+>>>>>>> upstream/master

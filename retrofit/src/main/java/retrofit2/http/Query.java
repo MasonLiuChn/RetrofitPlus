@@ -15,9 +15,12 @@
  */
 package retrofit2.http;
 
+import java.lang.annotation.Annotation;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
+import java.lang.reflect.Type;
+import retrofit2.Retrofit;
 
 import static java.lang.annotation.ElementType.PARAMETER;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
@@ -25,41 +28,44 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 /**
  * Query parameter appended to the URL.
  * <p>
- * Values are converted to strings using {@link String#valueOf(Object)} and then URL encoded.
+ * Values are converted to strings using {@link Retrofit#stringConverter(Type, Annotation[])}
+ * (or {@link Object#toString()}, if no matching string converter is installed)
+ * and then URL encoded.
  * {@code null} values are ignored. Passing a {@link java.util.List List} or array will result in a
  * query parameter for each non-{@code null} item.
  * <p>
  * Simple Example:
- * <pre>{@code
- * &#64;GET("/list")
- * Call&lt;ResponseBody> list(@Query("page") int page);
- * }</pre>
- * Calling with {@code foo.list(1)} yields {@code /list?page=1}.
+ * <pre><code>
+ * &#64;GET("/friends")
+ * Call&lt;ResponseBody&gt; friends(@Query("page") int page);
+ * </code></pre>
+ * Calling with {@code foo.friends(1)} yields {@code /friends?page=1}.
  * <p>
  * Example with {@code null}:
- * <pre>{@code
- * &#64;GET("/list")
- * Call&lt;ResponseBody> list(@Query("category") String category);
- * }</pre>
- * Calling with {@code foo.list(null)} yields {@code /list}.
+ * <pre><code>
+ * &#64;GET("/friends")
+ * Call&lt;ResponseBody&gt; friends(@Query("group") String group);
+ * </code></pre>
+ * Calling with {@code foo.friends(null)} yields {@code /friends}.
  * <p>
  * Array/Varargs Example:
- * <pre>{@code
- * &#64;GET("/list")
- * Call&lt;ResponseBody> list(@Query("category") String... categories);
- * }</pre>
- * Calling with {@code foo.list("bar", "baz")} yields
- * {@code /list?category=bar&category=baz}.
+ * <pre><code>
+ * &#64;GET("/friends")
+ * Call&lt;ResponseBody&gt; friends(@Query("group") String... groups);
+ * </code></pre>
+ * Calling with {@code foo.friends("coworker", "bowling")} yields
+ * {@code /friends?group=coworker&group=bowling}.
  * <p>
  * Parameter names and values are URL encoded by default. Specify {@link #encoded() encoded=true}
  * to change this behavior.
- * <pre>{@code
- * &#64;GET("/search")
- * Call&lt;ResponseBody> list(@Query(value="foo", encoded=true) String foo);
- * }</pre>
- * Calling with {@code foo.list("foo+bar"))} yields {@code /search?foo=foo+bar}.
+ * <pre><code>
+ * &#64;GET("/friends")
+ * Call&lt;ResponseBody&gt; friends(@Query(value="group", encoded=true) String group);
+ * </code></pre>
+ * Calling with {@code foo.friends("foo+bar"))} yields {@code /friends?group=foo+bar}.
  *
  * @see QueryMap
+ * @see QueryName
  */
 @Documented
 @Target(PARAMETER)

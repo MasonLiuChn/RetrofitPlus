@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import okhttp3.Headers;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -42,6 +43,7 @@ import retrofit2.http.GET;
 import retrofit2.http.HEAD;
 import retrofit2.http.HTTP;
 import retrofit2.http.Header;
+import retrofit2.http.HeaderMap;
 import retrofit2.http.Multipart;
 import retrofit2.http.OPTIONS;
 import retrofit2.http.PATCH;
@@ -52,22 +54,23 @@ import retrofit2.http.PartMap;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 import retrofit2.http.QueryMap;
+import retrofit2.http.QueryName;
 import retrofit2.http.Url;
 import retrofit2.plus.HTTPS;
 import retrofit2.plus.RetrofitUtil;
 
 /** Adapts an invocation of an interface method into an HTTP call. */
-final class ServiceMethod<T> {
+final class ServiceMethod<R, T> {
   // Upper and lower characters, digits, underscores, and hyphens, starting with a character.
   static final String PARAM = "[a-zA-Z][a-zA-Z0-9_-]*";
   static final Pattern PARAM_URL_REGEX = Pattern.compile("\\{(" + PARAM + ")\\}");
   static final Pattern PARAM_NAME_REGEX = Pattern.compile(PARAM);
 
   final okhttp3.Call.Factory callFactory;
-  final CallAdapter<?> callAdapter;
+  final CallAdapter<R, T> callAdapter;
 
   private final HttpUrl baseUrl;
-  private final Converter<ResponseBody, T> responseConverter;
+  private final Converter<ResponseBody, R> responseConverter;
   private final String httpMethod;
   private final String relativeUrl;
   private final Headers headers;
@@ -77,7 +80,7 @@ final class ServiceMethod<T> {
   private final boolean isMultipart;
   private final ParameterHandler<?>[] parameterHandlers;
 
-  ServiceMethod(Builder<T> builder) {
+  ServiceMethod(Builder<R, T> builder) {
     this.callFactory = builder.retrofit.callFactory();
     this.callAdapter = builder.callAdapter;
     this.baseUrl = builder.baseUrl;
@@ -93,7 +96,7 @@ final class ServiceMethod<T> {
   }
 
   /** Builds an HTTP request from method arguments. */
-  Request toRequest(Object... args) throws IOException {
+  Request toRequest(@Nullable Object... args) throws IOException {
     RequestBuilder requestBuilder = new RequestBuilder(httpMethod, baseUrl, relativeUrl, headers,
         contentType, hasBody, isFormEncoded, isMultipart);
 
@@ -114,7 +117,7 @@ final class ServiceMethod<T> {
   }
 
   /** Builds a method return value from an HTTP response body. */
-  T toResponse(ResponseBody body) throws IOException {
+  R toResponse(ResponseBody body) throws IOException {
     return responseConverter.convert(body);
   }
 
@@ -123,7 +126,7 @@ final class ServiceMethod<T> {
    * requires potentially-expensive reflection so it is best to build each service method only once
    * and reuse it. Builders cannot be reused.
    */
-  static final class Builder<T> {
+  static final class Builder<T, R> {
     final Retrofit retrofit;
     final Method method;
     final Annotation[] methodAnnotations;
@@ -147,10 +150,10 @@ final class ServiceMethod<T> {
     Set<String> relativeUrlParamNames;
     ParameterHandler<?>[] parameterHandlers;
     Converter<ResponseBody, T> responseConverter;
-    CallAdapter<?> callAdapter;
+    CallAdapter<T, R> callAdapter;
     HttpUrl baseUrl;
 
-    public Builder(Retrofit retrofit, Method method) {
+    Builder(Retrofit retrofit, Method method) {
       this.retrofit = retrofit;
       this.method = method;
       this.methodAnnotations = method.getAnnotations();
@@ -221,15 +224,16 @@ final class ServiceMethod<T> {
       return new ServiceMethod<>(this);
     }
 
-    private CallAdapter<?> createCallAdapter() {
-      Type returnType = RetrofitUtil.getReturnTypeIfWithCallbackArg(method);
+    private CallAdapter<T, R> createCallAdapter() {
+      Type returnType = RetrofitUtil.getReturnTypeIfWithCallbackArg(method);;
       if (Utils.hasUnresolvableType(returnType)) {
         throw methodError(
                 "Method return type must not include a type variable or wildcard: %s", returnType);
       }
       Annotation[] annotations = method.getAnnotations();
       try {
-        return retrofit.callAdapter(returnType, annotations);
+        //noinspection unchecked
+        return (CallAdapter<T, R>) retrofit.callAdapter(returnType, annotations);
       } catch (RuntimeException e) { // Wide exception range because factories are user code.
         throw methodError(e, "Unable to create call adapter for %s", returnType);
       }
@@ -316,7 +320,11 @@ final class ServiceMethod<T> {
         String headerName = header.substring(0, colon);
         String headerValue = header.substring(colon + 1).trim();
         if ("Content-Type".equalsIgnoreCase(headerName)) {
-          contentType = MediaType.parse(headerValue);
+          MediaType type = MediaType.parse(headerValue);
+          if (type == null) {
+            throw methodError("Malformed content type: %s", headerValue);
+          }
+          contentType = type;
         } else {
           builder.add(headerName, headerValue);
         }
@@ -426,6 +434,35 @@ final class ServiceMethod<T> {
           return new ParameterHandler.Query<>(name, converter, encoded);
         }
 
+      } else if (annotation instanceof QueryName) {
+        QueryName query = (QueryName) annotation;
+        boolean encoded = query.encoded();
+
+        Class<?> rawParameterType = Utils.getRawType(type);
+        gotQuery = true;
+        if (Iterable.class.isAssignableFrom(rawParameterType)) {
+          if (!(type instanceof ParameterizedType)) {
+            throw parameterError(p, rawParameterType.getSimpleName()
+                + " must include generic type (e.g., "
+                + rawParameterType.getSimpleName()
+                + "<String>)");
+          }
+          ParameterizedType parameterizedType = (ParameterizedType) type;
+          Type iterableType = Utils.getParameterUpperBound(0, parameterizedType);
+          Converter<?, String> converter =
+              retrofit.stringConverter(iterableType, annotations);
+          return new ParameterHandler.QueryName<>(converter, encoded).iterable();
+        } else if (rawParameterType.isArray()) {
+          Class<?> arrayComponentType = boxIfPrimitive(rawParameterType.getComponentType());
+          Converter<?, String> converter =
+              retrofit.stringConverter(arrayComponentType, annotations);
+          return new ParameterHandler.QueryName<>(converter, encoded).array();
+        } else {
+          Converter<?, String> converter =
+              retrofit.stringConverter(type, annotations);
+          return new ParameterHandler.QueryName<>(converter, encoded);
+        }
+
       } else if (annotation instanceof QueryMap) {
         Class<?> rawParameterType = Utils.getRawType(type);
         if (!Map.class.isAssignableFrom(rawParameterType)) {
@@ -473,6 +510,26 @@ final class ServiceMethod<T> {
               retrofit.stringConverter(type, annotations);
           return new ParameterHandler.Header<>(name, converter);
         }
+
+      } else if (annotation instanceof HeaderMap) {
+        Class<?> rawParameterType = Utils.getRawType(type);
+        if (!Map.class.isAssignableFrom(rawParameterType)) {
+          throw parameterError(p, "@HeaderMap parameter type must be Map.");
+        }
+        Type mapType = Utils.getSupertype(type, rawParameterType, Map.class);
+        if (!(mapType instanceof ParameterizedType)) {
+          throw parameterError(p, "Map must include generic types (e.g., Map<String, String>)");
+        }
+        ParameterizedType parameterizedType = (ParameterizedType) mapType;
+        Type keyType = Utils.getParameterUpperBound(0, parameterizedType);
+        if (String.class != keyType) {
+          throw parameterError(p, "@HeaderMap keys must be of type String: " + keyType);
+        }
+        Type valueType = Utils.getParameterUpperBound(1, parameterizedType);
+        Converter<?, String> valueConverter =
+            retrofit.stringConverter(valueType, annotations);
+
+        return new ParameterHandler.HeaderMap<>(valueConverter);
 
       } else if (annotation instanceof Field) {
         if (!isFormEncoded) {

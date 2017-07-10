@@ -16,14 +16,24 @@
 package retrofit2.converter.moshi;
 
 import com.squareup.moshi.FromJson;
+import com.squareup.moshi.JsonAdapter;
+import com.squareup.moshi.JsonDataException;
+import com.squareup.moshi.JsonQualifier;
 import com.squareup.moshi.JsonReader;
 import com.squareup.moshi.JsonWriter;
 import com.squareup.moshi.Moshi;
 import com.squareup.moshi.ToJson;
 import java.io.IOException;
+import java.lang.annotation.Annotation;
+import java.lang.annotation.Retention;
+import java.lang.reflect.Type;
+import java.nio.charset.Charset;
+import java.util.Set;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+import okio.Buffer;
+import okio.ByteString;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -33,11 +43,19 @@ import retrofit2.Retrofit;
 import retrofit2.http.Body;
 import retrofit2.http.POST;
 
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public final class MoshiConverterFactoryTest {
+  @Retention(RUNTIME)
+  @JsonQualifier
+  @interface Qualifier {}
+
+  @Retention(RUNTIME)
+  @interface NonQualifer {}
+
   interface AnInterface {
     String getName();
   }
@@ -54,7 +72,7 @@ public final class MoshiConverterFactoryTest {
     }
   }
 
-  static class AnInterfaceAdapter {
+  static class Adapters {
     @ToJson public void write(JsonWriter jsonWriter, AnInterface anInterface) throws IOException {
       jsonWriter.beginObject();
       jsonWriter.name("name").value(anInterface.getName());
@@ -76,24 +94,54 @@ public final class MoshiConverterFactoryTest {
       jsonReader.endObject();
       return new AnImplementation(name);
     }
+
+    @ToJson public void write(JsonWriter writer, @Qualifier String value) throws IOException {
+      writer.value("qualified!");
+    }
+
+    @FromJson @Qualifier public String readQualified(JsonReader reader) throws IOException {
+      String string = reader.nextString();
+      if (string.equals("qualified!")) {
+        return "it worked!";
+      }
+      throw new AssertionError("Found: " + string);
+    }
   }
 
   interface Service {
     @POST("/") Call<AnImplementation> anImplementation(@Body AnImplementation impl);
     @POST("/") Call<AnInterface> anInterface(@Body AnInterface impl);
+
+    @POST("/") @Qualifier @NonQualifer //
+    Call<String> annotations(@Body @Qualifier @NonQualifer String body);
   }
 
   @Rule public final MockWebServer server = new MockWebServer();
 
   private Service service;
   private Service serviceLenient;
+  private Service serviceNulls;
+  private Service serviceFailOnUnknown;
 
   @Before public void setUp() {
     Moshi moshi = new Moshi.Builder()
-        .add(new AnInterfaceAdapter())
+        .add(new JsonAdapter.Factory() {
+          @Override public JsonAdapter<?> create(Type type, Set<? extends Annotation> annotations,
+              Moshi moshi) {
+            for (Annotation annotation : annotations) {
+              if (!annotation.annotationType().isAnnotationPresent(JsonQualifier.class)) {
+                throw new AssertionError("Non-@JsonQualifier annotation: " + annotation);
+              }
+            }
+            return null;
+          }
+        })
+        .add(new Adapters())
         .build();
     MoshiConverterFactory factory = MoshiConverterFactory.create(moshi);
     MoshiConverterFactory factoryLenient = factory.asLenient();
+    MoshiConverterFactory factoryNulls = factory.withNullSerialization();
+    MoshiConverterFactory factoryFailOnUnknown = factory.failOnUnknown();
     Retrofit retrofit = new Retrofit.Builder()
         .baseUrl(server.url("/"))
         .addConverterFactory(factory)
@@ -102,8 +150,18 @@ public final class MoshiConverterFactoryTest {
         .baseUrl(server.url("/"))
         .addConverterFactory(factoryLenient)
         .build();
+    Retrofit retrofitNulls = new Retrofit.Builder()
+        .baseUrl(server.url("/"))
+        .addConverterFactory(factoryNulls)
+        .build();
+    Retrofit retrofitFailOnUnknown = new Retrofit.Builder()
+        .baseUrl(server.url("/"))
+        .addConverterFactory(factoryFailOnUnknown)
+        .build();
     service = retrofit.create(Service.class);
     serviceLenient = retrofitLenient.create(Service.class);
+    serviceNulls = retrofitNulls.create(Service.class);
+    serviceFailOnUnknown = retrofitFailOnUnknown.create(Service.class);
   }
 
   @Test public void anInterface() throws IOException, InterruptedException {
@@ -132,6 +190,18 @@ public final class MoshiConverterFactoryTest {
     assertThat(request.getHeader("Content-Type")).isEqualTo("application/json; charset=UTF-8");
   }
 
+  @Test public void annotations() throws IOException, InterruptedException {
+    server.enqueue(new MockResponse().setBody("\"qualified!\""));
+
+    Call<String> call = service.annotations("value");
+    Response<String> response = call.execute();
+    assertThat(response.body()).isEqualTo("it worked!");
+
+    RecordedRequest request = server.takeRequest();
+    assertThat(request.getBody().readUtf8()).isEqualTo("\"qualified!\"");
+    assertThat(request.getHeader("Content-Type")).isEqualTo("application/json; charset=UTF-8");
+  }
+
   @Test public void asLenient() throws IOException, InterruptedException {
     MockResponse malformedResponse = new MockResponse().setBody("{\"theName\":value}");
     server.enqueue(malformedResponse);
@@ -150,5 +220,53 @@ public final class MoshiConverterFactoryTest {
     Response<AnImplementation> response = call2.execute();
     AnImplementation body = response.body();
     assertThat(body.theName).isEqualTo("value");
+  }
+
+  @Test public void withNulls() throws IOException, InterruptedException {
+    server.enqueue(new MockResponse().setBody("{}"));
+
+    Call<AnImplementation> call = serviceNulls.anImplementation(new AnImplementation(null));
+    call.execute();
+    assertEquals("{\"theName\":null}", server.takeRequest().getBody().readUtf8());
+  }
+
+  @Test public void failOnUnknown() throws IOException, InterruptedException {
+    server.enqueue(new MockResponse().setBody("{\"taco\":\"delicious\"}"));
+
+    Call<AnImplementation> call = serviceFailOnUnknown.anImplementation(new AnImplementation(null));
+    try {
+      call.execute();
+      fail();
+    } catch (JsonDataException e) {
+      assertThat(e).hasMessage("Cannot skip unexpected STRING at $.taco");
+    }
+  }
+
+  @Test public void utf8BomSkipped() throws IOException {
+    Buffer responseBody = new Buffer()
+        .write(ByteString.decodeHex("EFBBBF"))
+        .writeUtf8("{\"theName\":\"value\"}");
+    MockResponse malformedResponse = new MockResponse().setBody(responseBody);
+    server.enqueue(malformedResponse);
+
+    Call<AnImplementation> call = service.anImplementation(new AnImplementation("value"));
+    Response<AnImplementation> response = call.execute();
+    AnImplementation body = response.body();
+    assertThat(body.theName).isEqualTo("value");
+  }
+
+  @Test public void nonUtf8BomIsNotSkipped() throws IOException {
+    Buffer responseBody = new Buffer()
+        .write(ByteString.decodeHex("FEFF"))
+        .writeString("{\"theName\":\"value\"}", Charset.forName("UTF-16"));
+    MockResponse malformedResponse = new MockResponse().setBody(responseBody);
+    server.enqueue(malformedResponse);
+
+    Call<AnImplementation> call = service.anImplementation(new AnImplementation("value"));
+    try {
+      call.execute();
+      fail();
+    } catch (IOException expected) {
+    }
   }
 }

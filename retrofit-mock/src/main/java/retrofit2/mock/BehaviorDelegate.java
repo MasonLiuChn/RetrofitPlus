@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.concurrent.ExecutorService;
+import javax.annotation.Nullable;
 import retrofit2.Call;
 import retrofit2.CallAdapter;
 import retrofit2.Retrofit;
@@ -46,20 +47,21 @@ public final class BehaviorDelegate<T> {
     this.service = service;
   }
 
-  public T returningResponse(Object response) {
+  public T returningResponse(@Nullable Object response) {
     return returning(Calls.response(response));
   }
 
   @SuppressWarnings("unchecked") // Single-interface proxy creation guarded by parameter safety.
-  public T returning(Call<?> call) {
-    final Call<?> behaviorCall = new BehaviorCall<>(behavior, executor, call);
+  public <R> T returning(Call<R> call) {
+    final Call<R> behaviorCall = new BehaviorCall<>(behavior, executor, call);
     return (T) Proxy.newProxyInstance(service.getClassLoader(), new Class[] { service },
         new InvocationHandler() {
           @Override
-          public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+          public T invoke(Object proxy, Method method, Object[] args) throws Throwable {
             Type returnType = method.getGenericReturnType();
             Annotation[] methodAnnotations = method.getAnnotations();
-            CallAdapter<?> callAdapter = retrofit.callAdapter(returnType, methodAnnotations);
+            CallAdapter<R, T> callAdapter =
+                (CallAdapter<R, T>) retrofit.callAdapter(returnType, methodAnnotations);
             return callAdapter.adapt(behaviorCall);
           }
         });

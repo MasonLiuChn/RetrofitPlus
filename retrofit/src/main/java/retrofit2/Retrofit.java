@@ -21,10 +21,11 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import javax.annotation.Nullable;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
@@ -44,32 +45,32 @@ import static retrofit2.Utils.checkNotNull;
  * the builder} and pass your interface to {@link #create} to generate an implementation.
  * <p>
  * For example,
- * <pre>{@code
+ * <pre><code>
  * Retrofit retrofit = new Retrofit.Builder()
  *     .baseUrl("https://api.example.com/")
  *     .addConverterFactory(GsonConverterFactory.create())
  *     .build();
  *
  * MyApi api = retrofit.create(MyApi.class);
- * Response<User> user = api.getUser().execute();
- * }</pre>
+ * Response&lt;User&gt; user = api.getUser().execute();
+ * </code></pre>
  *
  * @author Bob Lee (bob@squareup.com)
  * @author Jake Wharton (jw@squareup.com)
  */
 public final class Retrofit {
-  private final Map<Method, ServiceMethod> serviceMethodCache = new LinkedHashMap<>();
+  private final Map<Method, ServiceMethod<?, ?>> serviceMethodCache = new ConcurrentHashMap<>();
 
-  private final okhttp3.Call.Factory callFactory;
-  private final HttpUrl baseUrl;
-  private final List<Converter.Factory> converterFactories;
-  private final List<CallAdapter.Factory> adapterFactories;
-  private final Executor callbackExecutor;
-  private final boolean validateEagerly;
+  final okhttp3.Call.Factory callFactory;
+  final HttpUrl baseUrl;
+  final List<Converter.Factory> converterFactories;
+  final List<CallAdapter.Factory> adapterFactories;
+  final @Nullable Executor callbackExecutor;
+  final boolean validateEagerly;
 
   Retrofit(okhttp3.Call.Factory callFactory, HttpUrl baseUrl,
       List<Converter.Factory> converterFactories, List<CallAdapter.Factory> adapterFactories,
-      Executor callbackExecutor, boolean validateEagerly) {
+      @Nullable Executor callbackExecutor, boolean validateEagerly) {
     this.callFactory = callFactory;
     this.baseUrl = baseUrl;
     this.converterFactories = unmodifiableList(converterFactories); // Defensive copy at call site.
@@ -134,7 +135,7 @@ public final class Retrofit {
         new InvocationHandler() {
           private final Platform platform = Platform.get();
 
-          @Override public Object invoke(Object proxy, Method method, Object... args)
+          @Override public Object invoke(Object proxy, Method method, @Nullable Object[] args)
               throws Throwable {
             // If the method is a method from Object then defer to normal invocation.
             if (method.getDeclaringClass() == Object.class) {
@@ -143,8 +144,9 @@ public final class Retrofit {
             if (platform.isDefaultMethod(method)) {
               return platform.invokeDefaultMethod(method, service, proxy, args);
             }
-            ServiceMethod serviceMethod = loadServiceMethod(method);
-            OkHttpCall okHttpCall = new OkHttpCall<>(serviceMethod, args);
+            ServiceMethod<Object, Object> serviceMethod =
+                (ServiceMethod<Object, Object>) loadServiceMethod(method);
+            OkHttpCall<Object> okHttpCall = new OkHttpCall<>(serviceMethod, args);
             // 如果参数里有 callback 则 直接执行
             if (RetrofitUtil.isDirectCall(method,args)) {
               Call call = (Call)serviceMethod.callAdapter.adapt(okHttpCall);
@@ -164,12 +166,14 @@ public final class Retrofit {
     }
   }
 
-  ServiceMethod loadServiceMethod(Method method) {
-    ServiceMethod result;
+  ServiceMethod<?, ?> loadServiceMethod(Method method) {
+    ServiceMethod<?, ?> result = serviceMethodCache.get(method);
+    if (result != null) return result;
+
     synchronized (serviceMethodCache) {
       result = serviceMethodCache.get(method);
       if (result == null) {
-        result = new ServiceMethod.Builder(this, method).build();
+        result = new ServiceMethod.Builder<>(this, method).build();
         serviceMethodCache.put(method, result);
       }
     }
@@ -203,7 +207,7 @@ public final class Retrofit {
    *
    * @throws IllegalArgumentException if no call adapter available for {@code type}.
    */
-  public CallAdapter<?> callAdapter(Type returnType, Annotation[] annotations) {
+  public CallAdapter<?, ?> callAdapter(Type returnType, Annotation[] annotations) {
     return nextCallAdapter(null, returnType, annotations);
   }
 
@@ -213,14 +217,14 @@ public final class Retrofit {
    *
    * @throws IllegalArgumentException if no call adapter available for {@code type}.
    */
-  public CallAdapter<?> nextCallAdapter(CallAdapter.Factory skipPast, Type returnType,
+  public CallAdapter<?, ?> nextCallAdapter(@Nullable CallAdapter.Factory skipPast, Type returnType,
       Annotation[] annotations) {
     checkNotNull(returnType, "returnType == null");
     checkNotNull(annotations, "annotations == null");
 
     int start = adapterFactories.indexOf(skipPast) + 1;
     for (int i = start, count = adapterFactories.size(); i < count; i++) {
-      CallAdapter<?> adapter = adapterFactories.get(i).get(returnType, annotations, this);
+      CallAdapter<?, ?> adapter = adapterFactories.get(i).get(returnType, annotations, this);
       if (adapter != null) {
         return adapter;
       }
@@ -270,8 +274,9 @@ public final class Retrofit {
    *
    * @throws IllegalArgumentException if no converter available for {@code type}.
    */
-  public <T> Converter<T, RequestBody> nextRequestBodyConverter(Converter.Factory skipPast,
-      Type type, Annotation[] parameterAnnotations, Annotation[] methodAnnotations) {
+  public <T> Converter<T, RequestBody> nextRequestBodyConverter(
+      @Nullable Converter.Factory skipPast, Type type, Annotation[] parameterAnnotations,
+      Annotation[] methodAnnotations) {
     checkNotNull(type, "type == null");
     checkNotNull(parameterAnnotations, "parameterAnnotations == null");
     checkNotNull(methodAnnotations, "methodAnnotations == null");
@@ -320,8 +325,8 @@ public final class Retrofit {
    *
    * @throws IllegalArgumentException if no converter available for {@code type}.
    */
-  public <T> Converter<ResponseBody, T> nextResponseBodyConverter(Converter.Factory skipPast,
-      Type type, Annotation[] annotations) {
+  public <T> Converter<ResponseBody, T> nextResponseBodyConverter(
+      @Nullable Converter.Factory skipPast, Type type, Annotation[] annotations) {
     checkNotNull(type, "type == null");
     checkNotNull(annotations, "annotations == null");
 
@@ -378,8 +383,12 @@ public final class Retrofit {
    * The executor used for {@link Callback} methods on a {@link Call}. This may be {@code null},
    * in which case callbacks should be made synchronously on the background thread.
    */
-  public Executor callbackExecutor() {
+  public @Nullable Executor callbackExecutor() {
     return callbackExecutor;
+  }
+
+  public Builder newBuilder() {
+    return new Builder(this);
   }
 
   /**
@@ -389,12 +398,12 @@ public final class Retrofit {
    * are optional.
    */
   public static final class Builder {
-    private Platform platform;
-    private okhttp3.Call.Factory callFactory;
+    private final Platform platform;
+    private @Nullable okhttp3.Call.Factory callFactory;
     private HttpUrl baseUrl;
-    private List<Converter.Factory> converterFactories = new ArrayList<>();
-    private List<CallAdapter.Factory> adapterFactories = new ArrayList<>();
-    private Executor callbackExecutor;
+    private final List<Converter.Factory> converterFactories = new ArrayList<>();
+    private final List<CallAdapter.Factory> adapterFactories = new ArrayList<>();
+    private @Nullable Executor callbackExecutor;
     private boolean validateEagerly;
 
     Builder(Platform platform) {
@@ -408,14 +417,22 @@ public final class Retrofit {
       this(Platform.get());
     }
 
+    Builder(Retrofit retrofit) {
+      platform = Platform.get();
+      callFactory = retrofit.callFactory;
+      baseUrl = retrofit.baseUrl;
+      converterFactories.addAll(retrofit.converterFactories);
+      adapterFactories.addAll(retrofit.adapterFactories);
+      // Remove the default, platform-aware call adapter added by build().
+      adapterFactories.remove(adapterFactories.size() - 1);
+      callbackExecutor = retrofit.callbackExecutor;
+      validateEagerly = retrofit.validateEagerly;
+    }
+
     /**
      * The HTTP client used for requests.
      * <p>
      * This is a convenience method for calling {@link #callFactory}.
-     * <p>
-     * Note: This method <b>does not</b> make a defensive copy of {@code client}. Changes to its
-     * settings will affect subsequent requests. Pass in a {@linkplain OkHttpClient#clone() cloned}
-     * instance to prevent this if desired.
      */
     public Builder client(OkHttpClient client) {
       return callFactory(checkNotNull(client, "client == null"));

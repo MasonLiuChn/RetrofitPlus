@@ -21,16 +21,17 @@ import okhttp3.mockwebserver.MockWebServer;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import retrofit2.Retrofit;
 import retrofit2.http.GET;
 import rx.Completable;
 
 import static okhttp3.mockwebserver.SocketPolicy.DISCONNECT_AFTER_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
 
 public final class CompletableTest {
   @Rule public final MockWebServer server = new MockWebServer();
+  @Rule public final TestRule pluginsReset = new RxJavaPluginsResetRule();
+  @Rule public final RecordingSubscriber.Rule subscriberRule = new RecordingSubscriber.Rule();
 
   interface Service {
     @GET("/") Completable completable();
@@ -48,29 +49,26 @@ public final class CompletableTest {
 
   @Test public void completableSuccess200() {
     server.enqueue(new MockResponse().setBody("Hi"));
-    service.completable().await();
+
+    RecordingSubscriber<Void> subscriber = subscriberRule.create();
+    service.completable().unsafeSubscribe(subscriber);
+    subscriber.assertCompleted();
   }
 
   @Test public void completableSuccess404() {
     server.enqueue(new MockResponse().setResponseCode(404));
 
-    try {
-      service.completable().await();
-      fail();
-    } catch (RuntimeException e) {
-      Throwable cause = e.getCause();
-      assertThat(cause).isInstanceOf(HttpException.class).hasMessage("HTTP 404 Client Error");
-    }
+    RecordingSubscriber<Void> subscriber = subscriberRule.create();
+    service.completable().unsafeSubscribe(subscriber);
+    // Required for backwards compatibility.
+    subscriber.assertError(HttpException.class, "HTTP 404 Client Error");
   }
 
   @Test public void completableFailure() {
     server.enqueue(new MockResponse().setSocketPolicy(DISCONNECT_AFTER_REQUEST));
 
-    try {
-      service.completable().await();
-      fail();
-    } catch (RuntimeException e) {
-      assertThat(e.getCause()).isInstanceOf(IOException.class);
-    }
+    RecordingSubscriber<Void> subscriber = subscriberRule.create();
+    service.completable().unsafeSubscribe(subscriber);
+    subscriber.assertError(IOException.class);
   }
 }

@@ -41,14 +41,15 @@ public final class JacksonConverterFactory extends Converter.Factory {
   }
 
   /** Create an instance using {@code mapper} for conversion. */
+  @SuppressWarnings("ConstantConditions") // Guarding public API nullability.
   public static JacksonConverterFactory create(ObjectMapper mapper) {
+    if (mapper == null) throw new NullPointerException("mapper == null");
     return new JacksonConverterFactory(mapper);
   }
 
   private final ObjectMapper mapper;
 
   private JacksonConverterFactory(ObjectMapper mapper) {
-    if (mapper == null) throw new NullPointerException("mapper == null");
     this.mapper = mapper;
   }
 
@@ -56,7 +57,7 @@ public final class JacksonConverterFactory extends Converter.Factory {
   public Converter<ResponseBody, ?> responseBodyConverter(Type type, Annotation[] annotations,
       Retrofit retrofit) {
     JavaType javaType = mapper.getTypeFactory().constructType(type);
-    ObjectReader reader = mapper.reader(javaType);
+    ObjectReader reader = mapper.readerFor(javaType);
     return new JacksonResponseBodyConverter<>(reader);
   }
 
@@ -64,7 +65,7 @@ public final class JacksonConverterFactory extends Converter.Factory {
   public Converter<?, RequestBody> requestBodyConverter(Type type,
       Annotation[] parameterAnnotations, Annotation[] methodAnnotations, Retrofit retrofit) {
     JavaType javaType = mapper.getTypeFactory().constructType(type);
-    ObjectWriter writer = mapper.writerWithType(javaType);
+    ObjectWriter writer = mapper.writerFor(javaType);
     return new JacksonRequestBodyConverter<>(writer);
   }
 }

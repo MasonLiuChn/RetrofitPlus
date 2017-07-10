@@ -21,19 +21,20 @@ import okhttp3.mockwebserver.MockWebServer;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.http.GET;
 import rx.Observable;
-import rx.observables.BlockingObservable;
-import rx.observers.TestSubscriber;
+import rx.functions.Action1;
 
 import static okhttp3.mockwebserver.SocketPolicy.DISCONNECT_AFTER_REQUEST;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
 
 public final class ObservableTest {
   @Rule public final MockWebServer server = new MockWebServer();
+  @Rule public final TestRule pluginsReset = new RxJavaPluginsResetRule();
+  @Rule public final RecordingSubscriber.Rule subscriberRule = new RecordingSubscriber.Rule();
 
   interface Service {
     @GET("/") Observable<String> body();
@@ -55,46 +56,38 @@ public final class ObservableTest {
   @Test public void bodySuccess200() {
     server.enqueue(new MockResponse().setBody("Hi"));
 
-    BlockingObservable<String> o = service.body().toBlocking();
-    assertThat(o.first()).isEqualTo("Hi");
+    RecordingSubscriber<String> subscriber = subscriberRule.create();
+    service.body().unsafeSubscribe(subscriber);
+    subscriber.assertValue("Hi").assertCompleted();
   }
 
   @Test public void bodySuccess404() {
     server.enqueue(new MockResponse().setResponseCode(404));
 
-    BlockingObservable<String> o = service.body().toBlocking();
-    try {
-      o.first();
-      fail();
-    } catch (RuntimeException e) {
-      Throwable cause = e.getCause();
-      assertThat(cause).isInstanceOf(HttpException.class).hasMessage("HTTP 404 Client Error");
-    }
+    RecordingSubscriber<String> subscriber = subscriberRule.create();
+    service.body().unsafeSubscribe(subscriber);
+    // Required for backwards compatibility.
+    subscriber.assertError(HttpException.class, "HTTP 404 Client Error");
   }
 
   @Test public void bodyFailure() {
     server.enqueue(new MockResponse().setSocketPolicy(DISCONNECT_AFTER_REQUEST));
 
-    BlockingObservable<String> o = service.body().toBlocking();
-    try {
-      o.first();
-      fail();
-    } catch (RuntimeException e) {
-      assertThat(e.getCause()).isInstanceOf(IOException.class);
-    }
+    RecordingSubscriber<String> subscriber = subscriberRule.create();
+    service.body().unsafeSubscribe(subscriber);
+    subscriber.assertError(IOException.class);
   }
 
   @Test public void bodyRespectsBackpressure() {
     server.enqueue(new MockResponse().setBody("Hi"));
 
-    TestSubscriber<String> subscriber = new TestSubscriber<>(0);
-    Observable<String> o = service.body();
-
-    o.subscribe(subscriber);
-    assertThat(server.getRequestCount()).isEqualTo(0);
+    RecordingSubscriber<String> subscriber = subscriberRule.createWithInitialRequest(0);
+    service.body().unsafeSubscribe(subscriber);
+    assertThat(server.getRequestCount()).isEqualTo(1);
+    subscriber.assertNoEvents();
 
     subscriber.requestMore(1);
-    assertThat(server.getRequestCount()).isEqualTo(1);
+    subscriber.assertAnyValue().assertCompleted();
 
     subscriber.requestMore(Long.MAX_VALUE); // Subsequent requests do not trigger HTTP requests.
     assertThat(server.getRequestCount()).isEqualTo(1);
@@ -103,91 +96,97 @@ public final class ObservableTest {
   @Test public void responseSuccess200() {
     server.enqueue(new MockResponse().setBody("Hi"));
 
-    BlockingObservable<Response<String>> o = service.response().toBlocking();
-    Response<String> response = o.first();
-    assertThat(response.isSuccessful()).isTrue();
-    assertThat(response.body()).isEqualTo("Hi");
+    RecordingSubscriber<Response<String>> subscriber = subscriberRule.create();
+    service.response().unsafeSubscribe(subscriber);
+    assertThat(subscriber.takeValue().body()).isEqualTo("Hi");
+    subscriber.assertCompleted();
   }
 
   @Test public void responseSuccess404() throws IOException {
-    server.enqueue(new MockResponse().setResponseCode(404).setBody("Hi"));
+    server.enqueue(new MockResponse().setResponseCode(404));
 
-    BlockingObservable<Response<String>> o = service.response().toBlocking();
-    Response<String> response = o.first();
-    assertThat(response.isSuccessful()).isFalse();
-    assertThat(response.errorBody().string()).isEqualTo("Hi");
+    RecordingSubscriber<Response<String>> subscriber = subscriberRule.create();
+    service.response().unsafeSubscribe(subscriber);
+    assertThat(subscriber.takeValue().code()).isEqualTo(404);
+    subscriber.assertCompleted();
   }
 
   @Test public void responseFailure() {
     server.enqueue(new MockResponse().setSocketPolicy(DISCONNECT_AFTER_REQUEST));
 
-    BlockingObservable<Response<String>> o = service.response().toBlocking();
-    try {
-      o.first();
-      fail();
-    } catch (RuntimeException t) {
-      assertThat(t.getCause()).isInstanceOf(IOException.class);
-    }
+    RecordingSubscriber<Response<String>> subscriber = subscriberRule.create();
+    service.response().unsafeSubscribe(subscriber);
+    subscriber.assertError(IOException.class);
   }
 
   @Test public void responseRespectsBackpressure() {
     server.enqueue(new MockResponse().setBody("Hi"));
 
-    TestSubscriber<Response<String>> subscriber = new TestSubscriber<>(0);
-    Observable<Response<String>> o = service.response();
-
-    o.subscribe(subscriber);
-    assertThat(server.getRequestCount()).isEqualTo(0);
+    RecordingSubscriber<Response<String>> subscriber = subscriberRule.createWithInitialRequest(0);
+    service.response().unsafeSubscribe(subscriber);
+    assertThat(server.getRequestCount()).isEqualTo(1);
+    subscriber.assertNoEvents();
 
     subscriber.requestMore(1);
-    assertThat(server.getRequestCount()).isEqualTo(1);
+    subscriber.assertAnyValue().assertCompleted();
 
     subscriber.requestMore(Long.MAX_VALUE); // Subsequent requests do not trigger HTTP requests.
     assertThat(server.getRequestCount()).isEqualTo(1);
   }
 
+  @Test public void responseUnsubscribedDoesNotCallCompleted() throws InterruptedException {
+    server.enqueue(new MockResponse().setBody("Hi"));
+
+    final RecordingSubscriber<Response<String>> subscriber = subscriberRule.create();
+    service.response()
+        .doOnNext(new Action1<Response<String>>() {
+          @Override
+          public void call(Response<String> response) {
+            subscriber.unsubscribe();
+          }
+        })
+        .subscribe(subscriber);
+
+    assertThat(subscriber.takeValue().body()).isEqualTo("Hi");
+  }
+
   @Test public void resultSuccess200() {
     server.enqueue(new MockResponse().setBody("Hi"));
 
-    BlockingObservable<Result<String>> o = service.result().toBlocking();
-    Result<String> result = o.first();
-    assertThat(result.isError()).isFalse();
-    Response<String> response = result.response();
-    assertThat(response.isSuccessful()).isTrue();
-    assertThat(response.body()).isEqualTo("Hi");
+    RecordingSubscriber<Result<String>> subscriber = subscriberRule.create();
+    service.result().unsafeSubscribe(subscriber);
+    assertThat(subscriber.takeValue().response().body()).isEqualTo("Hi");
+    subscriber.assertCompleted();
   }
 
   @Test public void resultSuccess404() throws IOException {
-    server.enqueue(new MockResponse().setResponseCode(404).setBody("Hi"));
+    server.enqueue(new MockResponse().setResponseCode(404));
 
-    BlockingObservable<Result<String>> o = service.result().toBlocking();
-    Result<String> result = o.first();
-    assertThat(result.isError()).isFalse();
-    Response<String> response = result.response();
-    assertThat(response.isSuccessful()).isFalse();
-    assertThat(response.errorBody().string()).isEqualTo("Hi");
+    RecordingSubscriber<Result<String>> subscriber = subscriberRule.create();
+    service.result().unsafeSubscribe(subscriber);
+    assertThat(subscriber.takeValue().response().code()).isEqualTo(404);
+    subscriber.assertCompleted();
   }
 
   @Test public void resultFailure() {
     server.enqueue(new MockResponse().setSocketPolicy(DISCONNECT_AFTER_REQUEST));
 
-    BlockingObservable<Result<String>> o = service.result().toBlocking();
-    Result<String> result = o.first();
-    assertThat(result.isError()).isTrue();
-    assertThat(result.error()).isInstanceOf(IOException.class);
+    RecordingSubscriber<Result<String>> subscriber = subscriberRule.create();
+    service.result().unsafeSubscribe(subscriber);
+    assertThat(subscriber.takeValue().error()).isInstanceOf(IOException.class);
+    subscriber.assertCompleted();
   }
 
   @Test public void resultRespectsBackpressure() {
     server.enqueue(new MockResponse().setBody("Hi"));
 
-    TestSubscriber<Result<String>> subscriber = new TestSubscriber<>(0);
-    Observable<Result<String>> o = service.result();
-
-    o.subscribe(subscriber);
-    assertThat(server.getRequestCount()).isEqualTo(0);
+    RecordingSubscriber<Result<String>> subscriber = subscriberRule.createWithInitialRequest(0);
+    service.result().unsafeSubscribe(subscriber);
+    assertThat(server.getRequestCount()).isEqualTo(1);
+    subscriber.assertNoEvents();
 
     subscriber.requestMore(1);
-    assertThat(server.getRequestCount()).isEqualTo(1);
+    subscriber.assertAnyValue().assertCompleted();
 
     subscriber.requestMore(Long.MAX_VALUE); // Subsequent requests do not trigger HTTP requests.
     assertThat(server.getRequestCount()).isEqualTo(1);

@@ -18,13 +18,15 @@ package retrofit2;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import javax.annotation.Nullable;
 
 /**
- * Adapts a {@link Call} into the type of {@code T}. Instances are created by {@linkplain Factory a
- * factory} which is {@linkplain Retrofit.Builder#addCallAdapterFactory(Factory) installed} into
- * the {@link Retrofit} instance.
+ * Adapts a {@link Call} with response type {@code R} into the type of {@code T}. Instances are
+ * created by {@linkplain Factory a factory} which is
+ * {@linkplain Retrofit.Builder#addCallAdapterFactory(Factory) installed} into the {@link Retrofit}
+ * instance.
  */
-public interface CallAdapter<T> {
+public interface CallAdapter<R, T> {
   /**
    * Returns the value type that this adapter uses when converting the HTTP response body to a Java
    * object. For example, the response type for {@code Call<Repo>} is {@code Repo}. This type
@@ -40,19 +42,19 @@ public interface CallAdapter<T> {
    * <p>
    * For example, given an instance for a hypothetical utility, {@code Async}, this instance would
    * return a new {@code Async<R>} which invoked {@code call} when run.
-   * <pre>{@code
+   * <pre><code>
    * &#64;Override
-   * public <R> Async<R> adapt(final Call<R> call) {
-   *   return Async.create(new Callable<Response<R>>() {
+   * public &lt;R&gt; Async&lt;R&gt; adapt(final Call&lt;R&gt; call) {
+   *   return Async.create(new Callable&lt;Response&lt;R&gt;&gt;() {
    *     &#64;Override
-   *     public Response<R> call() throws Exception {
+   *     public Response&lt;R&gt; call() throws Exception {
    *       return call.execute();
    *     }
    *   });
    * }
-   * }</pre>
+   * </code></pre>
    */
-  <R> T adapt(Call<R> call);
+  T adapt(Call<R> call);
 
   /**
    * Creates {@link CallAdapter} instances based on the return type of {@linkplain
@@ -63,7 +65,7 @@ public interface CallAdapter<T> {
      * Returns a call adapter for interface methods that return {@code returnType}, or null if it
      * cannot be handled by this factory.
      */
-    public abstract CallAdapter<?> get(Type returnType, Annotation[] annotations,
+    public abstract @Nullable CallAdapter<?, ?> get(Type returnType, Annotation[] annotations,
         Retrofit retrofit);
 
     /**
