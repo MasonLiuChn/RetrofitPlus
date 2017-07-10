@@ -47,7 +47,7 @@ onNetFailure(Call<T> call, Throwable t);
 中文：
 ---------
 
-1、已经 rebase 到最新 retrofit2 代码(目前是最新的retrofit2.0.1)，支持原生 retrofit2 所有特性。
+1、已经 rebase 到最新 retrofit2 代码(目前是最新的retrofit2.3.0)，支持原生 retrofit2 所有特性。
 
 2、增加@HTTPS Annotation，可以灵活配置哪些方法使用 https。
 
