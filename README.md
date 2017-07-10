@@ -114,20 +114,7 @@ Usage of retrofit2.0：https://realm.io/cn/news/droidcon-jake-wharton-simple-htt
 #Contact me:
 
 - Blog:http://blog.csdn.net/masonblog
-
-<<<<<<< HEAD
 - Email:MasonLiuChn@gmail.com
-=======
-ProGuard
---------
-
-If you are using ProGuard you might need to add the following options:
-```
--dontwarn okio.**
--dontwarn javax.annotation.**
-```
-
->>>>>>> upstream/master
 
 License
 =======
@@ -145,11 +132,3 @@ License
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
-<<<<<<< HEAD
-=======
-
-
- [1]: http://square.github.io/retrofit/
- [2]: https://search.maven.org/remote_content?g=com.squareup.retrofit2&a=retrofit&v=LATEST
- [snap]: https://oss.sonatype.org/content/repositories/snapshots/
->>>>>>> upstream/master
