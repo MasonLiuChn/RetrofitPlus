@@ -1,9 +1,11 @@
 package retrofit2.plus;
 
 import android.content.Context;
+import android.text.TextUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.URLEncoder;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.security.cert.Certificate;
@@ -101,5 +103,45 @@ public class OkHttpClientUtil {
             var3.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     * 由于okhttp header 中的 value 不支持 null, \n 和 中文这样的特殊字符,所以encode字符串
+     * @param value
+     * @return
+     */
+    public static  String getHeaderValueEncoded(String value) {
+        if (TextUtils.isEmpty(value)) return " ";
+        for (int i = 0, length = value.length(); i < length; i++) {
+            char c = value.charAt(i);
+            if ((c <= '\u001f' && c != '\t') || c >= '\u007f') {//根据源码okhttp允许[0020-007E]+\t的字符
+                try{
+                    return URLEncoder.encode(value, "UTF-8");
+                }catch (Exception e){
+                    e.printStackTrace();
+                    return " ";
+                }
+            }
+        }
+        return value;
+    }
+
+    /**
+     * 由于okhttp header 中的 name 不支持 null,空格、\t、 \n 和 中文这样的特殊字符,所以encode字符串
+     */
+    public static  String getHeaderNameEncoded(String name) {
+        if (TextUtils.isEmpty(name)) return "null";
+        for (int i = 0, length = name.length(); i < length; i++) {
+            char c = name.charAt(i);
+            if (c <= '\u0020' || c >= '\u007f') {//根据源码okhttp允许[0021-007E]的字符
+                try{
+                    return URLEncoder.encode(name, "UTF-8");
+                }catch (Exception e){
+                    e.printStackTrace();
+                    return " ";
+                }
+            }
+        }
+        return name;
     }
 }

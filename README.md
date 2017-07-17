@@ -43,6 +43,10 @@ onHttpSuccess(Call<T> call, Response<T> response);
 onHttpFailure(Call<T> call, Response<T> response);
 onNetFailure(Call<T> call, Throwable t);
 ```
+6、OkHttpClientUtil.getHeaderValueEncoded 、 OkHttpClientUtil.getHeaderNameEncoded
+
+handle Unexpected char  in header name and value
+
 
 中文：
 ---------
@@ -85,7 +89,9 @@ onHttpSuccess(Call<T> call, Response<T> response);
 onHttpFailure(Call<T> call, Response<T> response);
 onNetFailure(Call<T> call, Throwable t);
 ```
+6、OkHttpClientUtil.getHeaderValueEncoded 、 OkHttpClientUtil.getHeaderNameEncoded
 
+当okhttp header 有中文字符时 采用getHeaderValueEncoded 和 getHeaderNameEncoded 进行编码
 
 Usage
 --------
@@ -97,7 +103,7 @@ repositories {
     }
 }
 dependencies {
-	compile 'com.github.MasonLiuChn:RetrofitPlus:2.3.0.0'
+	compile 'com.github.MasonLiuChn:RetrofitPlus:2.3.0.1'
 	compile('com.squareup.retrofit2:converter-gson:2.0.0') {
         	//exclude module: 'retrofit' 如果不写 group 则生成 pom 不会 add exclusion
         	exclude group: 'com.squareup.retrofit2', module: 'retrofit'
