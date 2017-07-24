@@ -95,7 +95,7 @@ onNetFailure(Call<T> call, Throwable t);
 
 Usage
 --------
-
+for android
 ```groovy
 repositories {
     maven {
@@ -104,7 +104,22 @@ repositories {
 }
 dependencies {
 	compile 'com.github.MasonLiuChn:RetrofitPlus:2.3.0.1'
-	compile('com.squareup.retrofit2:converter-gson:2.0.0') {
+	compile('com.squareup.retrofit2:converter-gson:2.3.0') {
+        	//exclude module: 'retrofit' 如果不写 group 则生成 pom 不会 add exclusion
+        	exclude group: 'com.squareup.retrofit2', module: 'retrofit'
+    	}
+}
+```
+
+for java
+
+- 1 .download [retrofitplus-java-2.3.0.1.jar](https://github.com/MasonLiuChn/RetrofitPlus/raw/master/retrofit-plus-demo/output/retrofitplus-java-2.3.0.1.jar)and import it.
+- 2 . config okhttp and converter,like:
+
+```groovy
+dependencies {
+	compile 'com.squareup.okhttp3:okhttp:3.8.1'
+	compile('com.squareup.retrofit2:converter-gson:2.3.0') {
         	//exclude module: 'retrofit' 如果不写 group 则生成 pom 不会 add exclusion
         	exclude group: 'com.squareup.retrofit2', module: 'retrofit'
     	}
