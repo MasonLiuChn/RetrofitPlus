@@ -47,6 +47,9 @@ onNetFailure(Call<T> call, Throwable t);
 
 handle Unexpected char  in header name and value
 
+7、OkHttpClientUtil.getTrustAllSSLClient
+
+TrustAllSSL
 
 中文：
 ---------
@@ -93,6 +96,11 @@ onNetFailure(Call<T> call, Throwable t);
 
 当okhttp header 有中文字符时 采用getHeaderValueEncoded 和 getHeaderNameEncoded 进行编码
 
+
+7、OkHttpClientUtil.getTrustAllSSLClient
+
+设置信任所有SSL正证书
+
 Usage
 --------
 for android
@@ -103,7 +111,7 @@ repositories {
     }
 }
 dependencies {
-	compile 'com.github.MasonLiuChn:RetrofitPlus:2.3.0.1'
+	compile 'com.github.MasonLiuChn:RetrofitPlus:2.3.0.3'
 	compile('com.squareup.retrofit2:converter-gson:2.3.0') {
         	//exclude module: 'retrofit' 如果不写 group 则生成 pom 不会 add exclusion
         	exclude group: 'com.squareup.retrofit2', module: 'retrofit'
