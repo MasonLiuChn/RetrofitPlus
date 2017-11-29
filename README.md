@@ -51,6 +51,18 @@ handle Unexpected char  in header name and value
 
 TrustAllSSL
 
+8、getSSLClientIgnoreExpire
+
+trust special certificate but ignore expire
+
+9、getSSLClient
+
+trust special certificate
+
+10、about Android https ssl certificate
+
+http://blog.csdn.net/masonblog/article/details/77712047
+
 中文：
 ---------
 
@@ -101,6 +113,18 @@ onNetFailure(Call<T> call, Throwable t);
 
 设置信任所有SSL正证书
 
+8、getSSLClientIgnoreExpire
+
+信任本地指定的证书，但忽略过期时间
+
+9、getSSLClient
+
+信任本地指定的证书
+
+10、Android https ssl证书配置（使用okhttp）说明
+
+http://blog.csdn.net/masonblog/article/details/77712047
+
 Usage
 --------
 for android
@@ -111,7 +135,7 @@ repositories {
     }
 }
 dependencies {
-	compile 'com.github.MasonLiuChn:RetrofitPlus:2.3.0.3'
+	compile 'com.github.MasonLiuChn:RetrofitPlus:2.3.0.4'
 	compile('com.squareup.retrofit2:converter-gson:2.3.0') {
         	//exclude module: 'retrofit' 如果不写 group 则生成 pom 不会 add exclusion
         	exclude group: 'com.squareup.retrofit2', module: 'retrofit'
@@ -121,12 +145,12 @@ dependencies {
 
 for java
 
-- 1 .download [retrofitplus-java-2.3.0.1.jar](https://github.com/MasonLiuChn/RetrofitPlus/raw/master/retrofit-plus-demo/output/retrofitplus-java-2.3.0.1.jar)and import it.
+- 1 .download [retrofitplus-java-2.3.0.4.jar](https://github.com/MasonLiuChn/RetrofitPlus/raw/master/retrofit-plus-demo/output/retrofitplus-java-2.3.0.4.jar)and import it.
 - 2 . config okhttp and converter,like:
 
 ```groovy
 dependencies {
-	compile 'com.squareup.okhttp3:okhttp:3.8.1'
+	compile 'com.squareup.okhttp3:okhttp:3.9.1'
 	compile('com.squareup.retrofit2:converter-gson:2.3.0') {
         	//exclude module: 'retrofit' 如果不写 group 则生成 pom 不会 add exclusion
         	exclude group: 'com.squareup.retrofit2', module: 'retrofit'
