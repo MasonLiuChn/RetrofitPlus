@@ -29,7 +29,7 @@ tasks.withType(JavaCompile) {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.squareup.okhttp3:okhttp:3.8.1'
+    compile 'com.squareup.okhttp3:okhttp:3.9.1'
     compileOnly 'com.google.android:android:4.1.1.4'
     compile 'org.codehaus.mojo:animal-sniffer-annotations:1.14'
     compile group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.0'
